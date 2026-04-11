@@ -7,12 +7,16 @@ require('dotenv').config();
 // ============================================
 // Database configuration
 // ============================================
-const DB_CONFIG = {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'Hemu@123',
-    database: process.env.DB_NAME || 'exam_system',
-    port: parseInt(process.env.DB_PORT) || 3306,
+
+// Priority: Railway MYSQL_URL > Railway individual vars > Custom DB_ vars > Defaults
+const dbUrl = process.env.MYSQL_URL || process.env.DATABASE_URL;
+
+const DB_CONFIG = dbUrl ? dbUrl : {
+    host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+    user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
+    password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || 'Hemu@123',
+    database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'exam_system',
+    port: parseInt(process.env.MYSQLPORT) || parseInt(process.env.DB_PORT) || 3306,
     waitForConnections: true,
     connectionLimit: 10
 };
@@ -24,34 +28,44 @@ const pool = mysql.createPool(DB_CONFIG);
 // Initialize database: create DB and tables if missing
 // ============================================
 async function initializeDatabase() {
-    // First, connect WITHOUT specifying a database to create it if needed
-    const initPool = mysql.createPool({
-        host: DB_CONFIG.host,
-        user: DB_CONFIG.user,
-        password: DB_CONFIG.password,
-        port: DB_CONFIG.port
-    });
+    // In production (like Railway), we typically don't have permission to CREATE DATABASE 
+    // and the database name is pre-allocated. We only try to create DB if not using a URL 
+    // and not in a clearly restricted environment.
+    
+    const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_ENVIRONMENT;
+
+    if (!dbUrl && !isProduction) {
+        // Dev logic: try to create database if it doesn't exist
+        const initPool = mysql.createPool({
+            host: DB_CONFIG.host,
+            user: DB_CONFIG.user,
+            password: DB_CONFIG.password,
+            port: DB_CONFIG.port
+        });
+
+        try {
+            const conn = await initPool.getConnection();
+            console.log('✅ MySQL connected (init phase)');
+            await conn.query(`CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\``);
+            console.log(`✅ Database "${DB_CONFIG.database}" ready`);
+            conn.release();
+            await initPool.end();
+        } catch (error) {
+            console.warn('⚠️  Could not run CREATE DATABASE (normal on some cloud providers):', error.message);
+            try { await initPool.end(); } catch(e) {}
+            // Continue anyway, createTables will fail later if DB doesn't exist
+        }
+    }
 
     try {
-        const conn = await initPool.getConnection();
-        console.log('✅ MySQL connected');
-
-        // Create database if it doesn't exist
-        await conn.query(`CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\``);
-        console.log(`✅ Database "${DB_CONFIG.database}" ready`);
-        conn.release();
-        await initPool.end();
-
-        // Now create tables using the main pool (which targets the database)
+        // Verify connection and create tables
+        console.log('⏳ Connecting to database and verifying tables...');
         await createTables();
-
     } catch (error) {
         console.error('❌ Database connection failed:', error.message);
         console.error('\n📋 Troubleshooting:');
-        console.error('   1. Is MySQL running?');
-        console.error('   2. Check your .env DB_USER and DB_PASSWORD');
-        console.error('   3. Try: mysql -u root -p');
-        try { await initPool.end(); } catch(e) {}
+        console.error('   1. Are your environment variables correct? (MYSQLHOST, MYSQLUSER, etc.)');
+        console.error('   2. If using Railway, ensure the MySQL service is linked.');
         process.exit(1);
     }
 }
