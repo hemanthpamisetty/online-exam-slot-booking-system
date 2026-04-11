@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Online Exam Slot Booking System - Login to your account">
+    <title>Login - Exam Slot Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- ============================================
+     LOGIN PAGE (Password Only - No OTP)
+     ============================================ -->
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="icon">🎓</div>
+                <h2>Exam Slot Booking</h2>
+                <p>Sign in to your account</p>
+            </div>
+
+            <!-- Alert Message -->
+            <div id="alertBox" class="alert"></div>
+
+            <!-- Step 1: Email & Password -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+                    Sign In
+                </button>
+                <div style="text-align: right; margin-top: 0.75rem;">
+                    <a href="forgot-password.html" style="font-size: 0.85rem;">Forgot Password?</a>
+                </div>
+            </form>
+
+            <!-- Step 2: OTP Verification (shown after password check) -->
+            <div id="otpSection" style="display:none;">
+                <div class="otp-info">
+                    <div
+                        style="background: #dbeafe; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.8rem 1rem; margin-bottom: 1rem; text-align: center;">
+                        <p style="color: #1e40af; font-size: 0.88rem; margin: 0;">
+                            📧 An OTP has been sent to <strong id="maskedEmail"></strong>
+                        </p>
+                        <p style="color: #3b82f6; font-size: 0.78rem; margin: 0.3rem 0 0;">
+                            Check your inbox (and spam folder)
+                        </p>
+                    </div>
+                </div>
+                <form id="otpForm">
+                    <div class="form-group">
+                        <label for="otpInput">Enter OTP</label>
+                        <input type="text" id="otpInput" placeholder="Enter 6-digit OTP from email" maxlength="6"
+                            required>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block" id="verifyBtn">
+                        Verify OTP & Login
+                    </button>
+                </form>
+                <div style="text-align: center; margin-top: 0.75rem;">
+                    <button type="button" class="btn-resend" id="resendBtn" onclick="resendOTP()" disabled>
+                        Resend OTP (<span id="resendTimer">30</span>s)
+                    </button>
+                </div>
+            </div>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="register.html">Register here</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+
+</html>

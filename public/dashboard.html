@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Student Dashboard - View and manage your exam slot bookings">
+    <title>Dashboard - Exam Slot Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============================================
+     NAVIGATION BAR
+     ============================================ -->
+<nav class="navbar">
+    <div class="logo">🎓 <span>ExamSlot</span> Booking</div>
+    <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+    <ul class="nav-links">
+        <li><a href="dashboard.html" class="active">Dashboard</a></li>
+        <li><a href="book-slot.html">Book Slot</a></li>
+        <li><a href="#" class="btn-logout" onclick="logout()">Logout</a></li>
+    </ul>
+</nav>
+
+<!-- ============================================
+     MAIN CONTENT
+     ============================================ -->
+<div class="container">
+    <div class="page-header">
+        <h1>Welcome, <span id="userName">Student</span>! 👋</h1>
+        <p>Manage your exam slot bookings from here</p>
+    </div>
+
+    <!-- Alert -->
+    <div id="alertBox" class="alert"></div>
+
+    <!-- My Bookings Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📋 My Bookings</h3>
+            <a href="book-slot.html" class="btn btn-primary btn-sm">+ Book New Slot</a>
+        </div>
+
+        <div id="bookingsContainer">
+            <!-- Bookings will be loaded here via JS -->
+            <div class="empty-state" id="emptyState">
+                <div class="icon">📭</div>
+                <h3>No bookings yet</h3>
+                <p>You haven't booked any exam slots. Click "Book New Slot" to get started!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================
+     RESCHEDULE MODAL
+     ============================================ -->
+<div class="modal-overlay" id="rescheduleModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🔄 Reschedule Booking</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="modalAlert" class="alert"></div>
+            <p style="margin-bottom: 1rem; color: var(--text-light); font-size: 0.9rem;">
+                Select a new slot to reschedule your booking:
+            </p>
+            <div id="availableSlotsContainer">
+                <!-- Available slots loaded here -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/dashboard.js"></script>
+</body>
+</html>

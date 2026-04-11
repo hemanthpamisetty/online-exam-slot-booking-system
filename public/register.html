@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Online Exam Slot Booking System - Create your account">
+    <title>Register - Exam Slot Booking</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============================================
+     REGISTRATION PAGE
+     ============================================ -->
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="icon">📝</div>
+            <h2>Create Account</h2>
+            <p>Register for exam slot booking</p>
+        </div>
+
+        <!-- Alert Message -->
+        <div id="alertBox" class="alert"></div>
+
+        <!-- Step 1: Registration Form -->
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="Enter your full name" required>
+            </div>
+            <div class="form-group">
+                <label for="registerNumber">Register Number</label>
+                <input type="text" id="registerNumber" placeholder="Enter 10-digit alphanumeric (e.g. 21BCS10045)" maxlength="10" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="Enter your email" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" placeholder="Enter your phone number" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Create a password (min 6 chars)" minlength="6" required>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="registerBtn">
+                Register
+            </button>
+        </form>
+
+        <!-- Step 2: OTP Verification -->
+        <div id="otpSection" style="display:none;">
+            <div style="background: #dbeafe; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.8rem 1rem; margin-bottom: 1rem; text-align: center;">
+                <p style="color: #1e40af; font-size: 0.88rem; margin: 0;">
+                    📧 Verification OTP sent to <strong id="maskedEmail"></strong>
+                </p>
+                <p style="color: #3b82f6; font-size: 0.78rem; margin: 0.3rem 0 0;">
+                    Check your inbox (and spam folder)
+                </p>
+            </div>
+            <form id="otpForm">
+                <div class="form-group">
+                    <label for="otpInput">Enter OTP to Verify</label>
+                    <input type="text" id="otpInput" placeholder="Enter 6-digit OTP from email" maxlength="6" required>
+                </div>
+                <button type="submit" class="btn btn-success btn-block" id="verifyBtn">
+                    Verify & Complete Registration
+                </button>
+            </form>
+            <div style="text-align: center; margin-top: 0.75rem;">
+                <button type="button" class="btn-resend" id="resendBtn" onclick="resendOTP()" disabled>
+                    Resend OTP (<span id="resendTimer">30</span>s)
+                </button>
+            </div>
+        </div>
+
+        <div class="auth-footer">
+            Already have an account? <a href="index.html">Login here</a>
+        </div>
+    </div>
+</div>
+
+<script src="js/register.js"></script>
+</body>
+</html>

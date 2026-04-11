@@ -1,0 +1,480 @@
+/* ============================================
+   NAVBAR COMPONENT - Premium Reusable Styles
+   ============================================ */
+
+/* --- Navbar Container --- */
+.navbar-premium {
+    background: linear-gradient(135deg, #1a1f36 0%, #2c3e50 100%);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    animation: navSlideDown 0.4s ease;
+}
+
+@keyframes navSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- Logo / Brand --- */
+.navbar-premium .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.navbar-premium .nav-brand:hover {
+    transform: scale(1.03);
+}
+
+.navbar-premium .nav-brand-icon {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    transition: box-shadow 0.3s ease;
+}
+
+.navbar-premium .nav-brand:hover .nav-brand-icon {
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+}
+
+.navbar-premium .nav-brand-text {
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.navbar-premium .nav-brand-text span {
+    color: #a78bfa;
+    font-weight: 800;
+}
+
+/* --- Center Nav Links --- */
+.navbar-premium .nav-center {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar-premium .nav-center li a {
+    color: #94a3b8;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.navbar-premium .nav-center li a:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.navbar-premium .nav-center li a.nav-active {
+    color: #ffffff;
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.navbar-premium .nav-center li a.nav-active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 10px;
+    animation: indicatorFade 0.3s ease;
+}
+
+@keyframes indicatorFade {
+    from { width: 0; opacity: 0; }
+    to { width: 20px; opacity: 1; }
+}
+
+.navbar-premium .nav-center li a .nav-link-icon {
+    font-size: 1rem;
+}
+
+/* --- Right Side: Profile Section --- */
+.navbar-premium .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* --- Profile Dropdown Container --- */
+.nav-profile {
+    position: relative;
+}
+
+.nav-profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 12px 5px 5px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    outline: none;
+    font-family: inherit;
+}
+
+.nav-profile-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* --- Avatar --- */
+.nav-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #a78bfa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    transition: box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.nav-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.nav-profile-btn:hover .nav-avatar {
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+}
+
+/* --- Username Text --- */
+.nav-username {
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* --- Dropdown Arrow --- */
+.nav-dropdown-arrow {
+    color: #94a3b8;
+    font-size: 0.6rem;
+    transition: transform 0.3s ease;
+}
+
+.nav-profile.open .nav-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+/* --- Profile Dropdown Menu --- */
+.nav-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 220px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.97);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    z-index: 1001;
+}
+
+.nav-profile.open .nav-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+/* Dropdown Header */
+.nav-dropdown-header {
+    padding: 1rem 1rem 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.nav-dropdown-header .dd-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 2px;
+}
+
+.nav-dropdown-header .dd-email {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nav-dropdown-header .dd-role {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 10px;
+    background: #ede9fe;
+    color: #7c3aed;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+/* Dropdown Items */
+.nav-dropdown-items {
+    padding: 0.4rem;
+}
+
+.nav-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    border: none;
+    background: none;
+    width: 100%;
+    font-family: inherit;
+    outline: none;
+}
+
+.nav-dropdown-item:hover {
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+.nav-dropdown-item .dd-icon {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Divider */
+.nav-dropdown-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 0.25rem 0.8rem;
+}
+
+/* Logout Item */
+.nav-dropdown-item.logout-item {
+    color: #ef4444;
+}
+
+.nav-dropdown-item.logout-item:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* --- Mobile Hamburger Menu --- */
+.nav-hamburger {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    outline: none;
+}
+
+.nav-hamburger:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-hamburger-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 22px;
+}
+
+.nav-hamburger-lines span {
+    display: block;
+    width: 100%;
+    height: 2.5px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    transform-origin: center;
+}
+
+/* Hamburger animation when open */
+.nav-hamburger.open .nav-hamburger-lines span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.nav-hamburger.open .nav-hamburger-lines span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+}
+
+.nav-hamburger.open .nav-hamburger-lines span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+}
+
+/* --- Online Status Dot --- */
+.nav-status-dot {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    border: 2px solid #1a1f36;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+    50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+}
+
+/* ============================================
+   RESPONSIVE - Mobile Layout
+   ============================================ */
+@media (max-width: 768px) {
+    .navbar-premium {
+        padding: 0 1rem;
+        height: 60px;
+    }
+
+    .nav-hamburger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .navbar-premium .nav-center {
+        display: none;
+        position: absolute;
+        top: 60px;
+        left: 0;
+        right: 0;
+        background: linear-gradient(180deg, #1a1f36, #232a45);
+        flex-direction: column;
+        padding: 0.75rem;
+        gap: 2px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        animation: mobileMenuSlide 0.25s ease;
+    }
+
+    @keyframes mobileMenuSlide {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .navbar-premium .nav-center.mobile-open {
+        display: flex;
+    }
+
+    .navbar-premium .nav-center li a {
+        padding: 0.75rem 1rem;
+        width: 100%;
+        border-radius: 8px;
+    }
+
+    .navbar-premium .nav-center li a.nav-active::after {
+        display: none;
+    }
+
+    .nav-username {
+        display: none;
+    }
+
+    .nav-profile-btn {
+        padding: 4px;
+        border-radius: 50%;
+    }
+
+    .nav-dropdown-arrow {
+        display: none;
+    }
+
+    .nav-dropdown {
+        right: -8px;
+        width: 200px;
+    }
+
+    .nav-brand-text {
+        font-size: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar-premium {
+        padding: 0 0.75rem;
+    }
+
+    .nav-brand-text span {
+        display: none;
+    }
+}
+
+/* ============================================
+   BODY PADDING - Push content below fixed nav
+   ============================================ */
+body.has-navbar {
+    padding-top: 0; /* sticky handles this */
+}
+
+/* Hide old navbar if it still exists */
+.navbar:not(.navbar-premium) {
+    display: none !important;
+}
