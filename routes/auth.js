@@ -87,7 +87,6 @@ router.post('/login', asyncHandler(async (req, res) => {
     if (users.length === 0) return res.status(400).json({ success: false, message: 'Invalid credentials' });
 
     const user = users[0];
-    if (!user.is_verified) return res.status(400).json({ success: false, message: 'Account not verified' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ success: false, message: 'Invalid credentials' });
