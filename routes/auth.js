@@ -50,7 +50,9 @@ router.post('/register', asyncHandler(async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query('INSERT INTO users (name, email, password, phone, register_number, is_verified) VALUES (?, ?, ?, ?, ?, 0)', [name, email, hashedPassword, phone, register_number]);
 
-    await createAndSendOTP(email, 'register');
+    // Task 1: Non-blocking email attempt (No await)
+    createAndSendOTP(email, 'register').catch(err => console.error('Background Email Error:', err.message));
+
     res.json({ success: true, message: 'OTP sent to your email.' });
 }));
 

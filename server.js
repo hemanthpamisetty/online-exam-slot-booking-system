@@ -18,24 +18,28 @@ const slotRoutes = require('./routes/slots');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT, 10) || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // ============================================
 // 1. Core Middleware
 // ============================================
+app.set('trust proxy', 1); // Trust first proxy (essential for Railway/Render)
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Production Session Settings
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'prod-secret-key-12345',
+    secret: process.env.SESSION_SECRET || 'prod-secret-key-98765',
     resave: false,
     saveUninitialized: false,
+    name: 'exam_session', // Custom cookie name
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Only over HTTPS
+        secure: NODE_ENV === 'production', 
         httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 2 // 2 hours
+        sameSite: 'lax',
+        maxAge: 1000 * 60 * 60 * 24 // 24 hours
     }
 }));
 
@@ -43,9 +47,10 @@ app.use(session({
 // 2. Specialized Routes
 // ============================================
 
-// A. Root Route (Serve Frontend)
+// A. Root Route (Task 2)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    // Return a simple message for status checks, then serve the file
+    res.status(200).sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // B. Public Site
@@ -63,16 +68,28 @@ app.get('/api/health', asyncHandler(async (req, res) => {
 }));
 
 // ============================================
-// 3. Global Error Handling (Task 3)
+// 3. Global Error Handling (Task 3 & 9)
 // ============================================
+
+// 404 Handler
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'Resource not found' });
+});
+
+// Global Error Catch-all
 app.use((err, req, res, next) => {
-    console.error('❌ UNEXPECTED ERROR:', err.message);
-    console.error(err.stack);
+    const status = err.status || 500;
+    const message = err.message || 'Internal Server Error';
     
-    res.status(err.status || 500).json({
+    console.error(`\n❌ [ERROR] ${new Date().toISOString()}`);
+    console.error(`   Path: ${req.path}`);
+    console.error(`   Message: ${message}`);
+    if (NODE_ENV !== 'production') console.error(err.stack);
+    
+    res.status(status).json({
         success: false,
-        message: 'Internal Server Error',
-        error: process.env.NODE_ENV === 'production' ? 'Unexplained server error' : err.message
+        message: NODE_ENV === 'production' ? 'An unexpected server error occurred' : message,
+        error: NODE_ENV === 'production' ? null : err.stack
     });
 });
 
