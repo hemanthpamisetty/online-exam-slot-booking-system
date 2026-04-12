@@ -1,114 +1,79 @@
 // ============================================
-// Database Connection Module
+// Database Connection Module (Production Hardened)
 // ============================================
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 // ============================================
-// Database configuration
+// Database Configuration
 // ============================================
 
-// Priority: Railway MYSQL_URL > Railway individual vars > Custom DB_ vars > Defaults
+// Priority: Railway MYSQL_URL > individual vars > defaults
 const dbUrl = (process.env.MYSQL_URL || process.env.DATABASE_URL || '').trim();
 
-let DB_CONFIG;
-
-if (dbUrl) {
-    console.log('✅ Using Database URL for connection');
-    DB_CONFIG = {
-        uri: dbUrl,
-        ssl: { rejectUnauthorized: false }, // Common requirement for cloud DBs
-        waitForConnections: true,
-        connectionLimit: 10
-    };
-} else {
-    console.log('ℹ️ Using individual environment variables for connection');
-    DB_CONFIG = {
-        host: (process.env.MYSQLHOST || process.env.DB_HOST || 'localhost').trim(),
-        user: (process.env.MYSQLUSER || process.env.DB_USER || 'root').trim(),
-        password: (process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || 'Hemu@123').trim(),
-        database: (process.env.MYSQLDATABASE || process.env.DB_NAME || 'exam_system').trim(),
-        port: parseInt(process.env.MYSQLPORT) || parseInt(process.env.DB_PORT) || 3306,
-        ssl: { rejectUnauthorized: false },
-        waitForConnections: true,
-        connectionLimit: 10
-    };
-    console.log(`🔗 Target: ${DB_CONFIG.host}:${DB_CONFIG.port} (User: ${DB_CONFIG.user}, DB: ${DB_CONFIG.database})`);
-}
-
-// Create a connection pool
-// To ensure SSL is applied even with a URL string, we pass options as second argument
-const pool = dbUrl ? mysql.createPool(`${dbUrl}${dbUrl.includes('?') ? '&' : '?'}ssl={"rejectUnauthorized":false}`) : mysql.createPool(DB_CONFIG);
+const DB_CONFIG = {
+    host: (process.env.MYSQLHOST || process.env.DB_HOST || 'localhost').trim(),
+    user: (process.env.MYSQLUSER || process.env.DB_USER || 'root').trim(),
+    password: (process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || 'Hemu@123').trim(),
+    database: (process.env.MYSQLDATABASE || process.env.DB_NAME || 'exam_system').trim(),
+    port: parseInt(process.env.MYSQLPORT) || parseInt(process.env.DB_PORT) || 3306,
+    ssl: { rejectUnauthorized: false }, // Required for Railway/Cloud DBs
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000
+};
 
 // ============================================
-// Initialize database: create DB and tables if missing
+// Connection Pool Initialization
+// ============================================
+
+// Use URL if available, otherwise use config object
+const pool = dbUrl 
+    ? mysql.createPool(`${dbUrl}${dbUrl.includes('?') ? '&' : '?'}ssl={"rejectUnauthorized":false}`) 
+    : mysql.createPool(DB_CONFIG);
+
+console.log(`🗄️  Database Pool initialized. Target: ${dbUrl ? 'URL' : DB_CONFIG.host}`);
+
+// ============================================
+// Database Initialization Logic
 // ============================================
 async function initializeDatabase() {
-    // In production (like Railway), we typically don't have permission to CREATE DATABASE 
-    // and the database name is pre-allocated. We only try to create DB if not using a URL 
-    // and not in a clearly restricted environment.
-    
-    const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_ENVIRONMENT;
-
-    if (!dbUrl && !isProduction) {
-        // Dev logic: try to create database if it doesn't exist
-        const initPool = mysql.createPool({
-            host: DB_CONFIG.host,
-            user: DB_CONFIG.user,
-            password: DB_CONFIG.password,
-            port: DB_CONFIG.port,
-            ssl: { rejectUnauthorized: false }
-        });
-
-        try {
-            const conn = await initPool.getConnection();
-            console.log('✅ MySQL connected (init phase)');
-            await conn.query(`CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\``);
-            console.log(`✅ Database "${DB_CONFIG.database}" ready`);
-            conn.release();
-            await initPool.end();
-        } catch (error) {
-            console.warn('⚠️  Could not run CREATE DATABASE (normal on some cloud providers):', error.message);
-            try { await initPool.end(); } catch(e) {}
-            // Continue anyway, createTables will fail later if DB doesn't exist
-        }
-    }
-
     try {
-        // Verify connection and create tables
-        console.log('⏳ Connecting to database and verifying tables...');
+        console.log('⏳ Verifying database connection...');
         const [rows] = await pool.query('SELECT 1 + 1 AS test');
-        console.log('✅ Database connection verified');
+        console.log('✅ Base connection verified');
+
+        // Create tables
         await createTables();
-    } catch (error) {
-        console.error('❌ Database connection failed!');
-        console.error('   Error Code:', error.code);
-        console.error('   Error Message:', error.message);
-        if (error.sqlMessage) console.error('   SQL Message:', error.sqlMessage);
         
-        console.error('\n📋 Troubleshooting:');
-        console.error('   1. Ensure your MYSQL_URL variable is correct and has no extra spaces.');
-        console.error('   2. Ensure the MySQL service is "Online" in Railway.');
-        console.error('   3. If using individual variables, check host/user/port.');
+        console.log('🚀 Database initialization complete');
+    } catch (error) {
+        console.error('❌ CRITICAL: Database connection failed!');
+        console.error('   Error Message:', error.message);
+        console.error('   Check your MYSQL_URL or DB_HOST variables in Railway Settings.');
+        
+        // In production, we exit if DB is not available
         process.exit(1);
     }
 }
 
 // ============================================
-// Create all required tables
+// Create required tables
 // ============================================
 async function createTables() {
     const connection = await pool.getConnection();
 
     try {
-        // Users table (with register_number)
+        // Users Table
         await connection.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) NOT NULL UNIQUE,
                 phone VARCHAR(15) NOT NULL,
-                register_number VARCHAR(50) NOT NULL UNIQUE,
+                register_number VARCHAR(10) NOT NULL UNIQUE,
                 password VARCHAR(255) NOT NULL,
                 role ENUM('student', 'admin') DEFAULT 'student',
                 is_verified TINYINT(1) DEFAULT 0,
@@ -116,17 +81,7 @@ async function createTables() {
             )
         `);
 
-        // Add register_number column if it doesn't exist (for existing databases)
-        try {
-            await connection.query(`
-                ALTER TABLE users ADD COLUMN register_number VARCHAR(50) UNIQUE AFTER phone
-            `);
-            console.log('✅ Added register_number column to users table');
-        } catch (e) {
-            // Column already exists, ignore
-        }
-
-        // OTPs table
+        // OTPs Table
         await connection.query(`
             CREATE TABLE IF NOT EXISTS otps (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -139,7 +94,7 @@ async function createTables() {
             )
         `);
 
-        // Slots table
+        // Slots Table
         await connection.query(`
             CREATE TABLE IF NOT EXISTS slots (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -154,7 +109,7 @@ async function createTables() {
             )
         `);
 
-        // Bookings table
+        // Bookings Table
         await connection.query(`
             CREATE TABLE IF NOT EXISTS bookings (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -168,7 +123,7 @@ async function createTables() {
             )
         `);
 
-        // Login logs table
+        // Login Logs Table
         await connection.query(`
             CREATE TABLE IF NOT EXISTS login_logs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -180,49 +135,28 @@ async function createTables() {
             )
         `);
 
-        console.log('✅ All tables verified/created');
-
-        // Insert default admin if no admin exists
-        const [admins] = await connection.query(
-            "SELECT id FROM users WHERE role = 'admin' LIMIT 1"
-        );
+        // Create default admin if missing
+        const [admins] = await connection.query("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
         if (admins.length === 0) {
             const bcrypt = require('bcryptjs');
-            const hashedPassword = await bcrypt.hash('admin123', 10);
+            const hashed = await bcrypt.hash('admin123', 10);
             await connection.query(
                 `INSERT INTO users (name, email, phone, register_number, password, role, is_verified) 
                  VALUES (?, ?, ?, ?, ?, 'admin', 1)`,
-                ['Admin', 'admin@exam.com', '9999999999', 'ADMIN001', hashedPassword]
+                ['Admin', 'admin@exam.com', '9999999999', 'ADMIN001', hashed]
             );
-            console.log('✅ Default admin account created (admin@exam.com / admin123)');
-        }
-
-        // Insert sample slots if table is empty
-        const [existingSlots] = await connection.query('SELECT COUNT(*) AS count FROM slots');
-        if (existingSlots[0].count === 0) {
-            await connection.query(`
-                INSERT INTO slots (exam_name, exam_date, start_time, end_time, venue, capacity) VALUES
-                ('Mathematics Final Exam', '2026-05-15', '09:00:00', '12:00:00', 'Hall A - Block 1', 30),
-                ('Physics Midterm Exam', '2026-05-16', '10:00:00', '12:30:00', 'Hall B - Block 2', 25),
-                ('Chemistry Lab Exam', '2026-05-17', '14:00:00', '16:00:00', 'Lab 3 - Science Block', 20),
-                ('English Literature', '2026-05-18', '09:30:00', '11:30:00', 'Hall C - Block 1', 35),
-                ('Computer Science Practical', '2026-05-19', '13:00:00', '16:00:00', 'Computer Lab 1', 30),
-                ('History Final Exam', '2026-05-20', '10:00:00', '13:00:00', 'Hall A - Block 1', 30)
-            `);
-            console.log('✅ Sample exam slots inserted');
+            console.log('👤 Created default admin account (admin@exam.com)');
         }
 
         connection.release();
     } catch (error) {
         connection.release();
-        console.error('❌ Error creating tables:', error.message);
+        console.error('❌ Error in table creation:', error.message);
         throw error;
     }
 }
 
-// ============================================
-// Legacy testConnection function
-// ============================================
+// Legacy export for testConnection calls
 async function testConnection() {
     await initializeDatabase();
 }
