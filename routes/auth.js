@@ -5,7 +5,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 const { pool } = require('../db');
-const { sendOTPEmail, sendPasswordResetConfirmation } = require('../email');
+const { verifyEmailConnection, sendOTPEmail, sendPasswordResetConfirmation } = require('../email');
 const { asyncHandler } = require('../utils');
 
 // ============================================
@@ -109,5 +109,18 @@ router.get('/me', asyncHandler(async (req, res) => {
 router.post('/logout', (req, res) => {
     req.session.destroy(() => res.json({ success: true }));
 });
+
+// ============================================
+// GET /api/auth/test-email-config
+// Debug endpoint to verify SMTP credentials
+// ============================================
+router.get('/test-email-config', asyncHandler(async (req, res) => {
+    const { verifyEmailConnection } = require('../email');
+    await verifyEmailConnection();
+    res.json({ 
+        success: true, 
+        message: '✅ Email configuration is CORRECT and connected!'
+    });
+}));
 
 module.exports = router;
