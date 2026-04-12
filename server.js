@@ -74,9 +74,13 @@ async function startServer() {
         console.warn('   Fix your .env EMAIL_USER / EMAIL_PASS and restart the server.');
     }
 
-    app.listen(PORT, () => {
-        console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
-        console.log(`📂 Open your browser and visit: http://localhost:${PORT}\n`);
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`\n🚀 Server is LIVE in ${process.env.NODE_ENV || 'development'} mode`);
+        console.log(`🔗 Listening on: 0.0.0.0:${PORT}`);
+        if (process.env.RAILWAY_STATIC_URL) {
+            console.log(`🌍 Public URL: https://${process.env.RAILWAY_STATIC_URL}`);
+        }
+        console.log(`📂 Ready for traffic!\n`);
     });
 }
 
