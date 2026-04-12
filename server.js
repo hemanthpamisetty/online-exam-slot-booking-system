@@ -43,9 +43,9 @@ app.use(session({
 // 2. Specialized Routes
 // ============================================
 
-// A. Root Route (Task 2)
+// A. Root Route (Serve Frontend)
 app.get('/', (req, res) => {
-    res.send('Server is working perfectly! Public frontend is also available.');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // B. Public Site
