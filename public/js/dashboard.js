@@ -42,7 +42,12 @@ function formatTime(timeStr) {
 // ============================================
 async function checkAuth() {
     try {
-        const res = await fetch(`${API}/api/auth/me`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const res = await fetch(`${API}/api/auth/me`, { signal: controller.signal });
+        
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (!data.success) {
@@ -66,9 +71,13 @@ async function checkAuth() {
 // ============================================
 // Load user's bookings
 // ============================================
-async function loadBookings() {
     try {
-        const res = await fetch(`${API}/api/slots/my-bookings`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const res = await fetch(`${API}/api/slots/my-bookings`, { signal: controller.signal });
+        
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         const container = document.getElementById('bookingsContainer');
@@ -140,10 +149,15 @@ async function cancelBooking(bookingId) {
     if (!confirm('Are you sure you want to cancel this booking?')) return;
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         const res = await fetch(`${API}/api/slots/cancel/${bookingId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.success) {

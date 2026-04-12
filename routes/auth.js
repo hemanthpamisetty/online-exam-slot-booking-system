@@ -9,7 +9,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 const { pool } = require('../db');
-const { sendOTPEmail, sendPasswordResetConfirmation } = require('../email');
+const { verifyEmailConnection, sendOTPEmail, sendPasswordResetConfirmation } = require('../email');
 
 // ============================================
 // Helper: Generate 6-digit OTP
@@ -382,6 +382,34 @@ router.post('/logout', (req, res) => {
         }
         res.json({ success: true, message: 'Logged out successfully' });
     });
+});
+
+// ============================================
+// GET /api/auth/test-email-config
+// Debug endpoint to verify SMTP credentials
+// ============================================
+router.get('/test-email-config', async (req, res) => {
+    try {
+        console.log('🧪 Testing email configuration...');
+        const result = await verifyEmailConnection();
+        res.json({ 
+            success: true, 
+            message: '✅ Email configuration is CORRECT and connected!',
+            details: 'The server was able to connect to the SMTP server successfully.'
+        });
+    } catch (error) {
+        console.error('❌ Email test failed:', error.message);
+        res.status(500).json({ 
+            success: false, 
+            message: '❌ Email configuration FAILED',
+            error: error.message,
+            troubleshooting: [
+                'Ensure EMAIL_USER is your Brevo login email',
+                'Ensure EMAIL_PASS is your Brevo SMTP Master Password (or SMTP Key)',
+                'Ensure EMAIL_HOST and EMAIL_PORT are correct'
+            ]
+        });
+    }
 });
 
 module.exports = router;

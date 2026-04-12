@@ -59,7 +59,12 @@ async function checkAuth() {
 // ============================================
 async function loadSlots() {
     try {
-        const res = await fetch(`${API}/api/slots`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const res = await fetch(`${API}/api/slots`, { signal: controller.signal });
+        
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         const container = document.getElementById('slotsContainer');
@@ -129,12 +134,17 @@ async function bookSlot(slotId) {
     if (!confirm('Are you sure you want to book this slot?')) return;
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         const res = await fetch(`${API}/api/slots/book`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ slotId })
+            body: JSON.stringify({ slotId }),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.success) {

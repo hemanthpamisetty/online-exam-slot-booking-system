@@ -76,7 +76,12 @@ async function checkAuth() {
 // ============================================
 async function loadStats() {
     try {
-        const res = await fetch(`${API}/api/admin/stats`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const res = await fetch(`${API}/api/admin/stats`, { signal: controller.signal });
+        
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.success) {
@@ -95,7 +100,12 @@ async function loadStats() {
 // ============================================
 async function loadUsers() {
     try {
-        const res = await fetch(`${API}/api/admin/users`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const res = await fetch(`${API}/api/admin/users`, { signal: controller.signal });
+        
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         const tbody = document.getElementById('usersTableBody');
@@ -134,7 +144,12 @@ async function loadUsers() {
 // ============================================
 async function loadBookings() {
     try {
-        const res = await fetch(`${API}/api/admin/bookings`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const res = await fetch(`${API}/api/admin/bookings`, { signal: controller.signal });
+        
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         const tbody = document.getElementById('bookingsTableBody');
@@ -287,12 +302,17 @@ document.getElementById('addSlotForm').addEventListener('submit', async (e) => {
     }
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         const res = await fetch(`${API}/api/admin/slots`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exam_name, exam_date, start_time, end_time, venue, capacity })
+            body: JSON.stringify({ exam_name, exam_date, start_time, end_time, venue, capacity }),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.success) {

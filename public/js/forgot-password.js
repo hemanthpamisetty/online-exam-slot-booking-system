@@ -38,12 +38,17 @@ emailForm.addEventListener('submit', async (e) => {
     sendOtpBtn.innerHTML = '<span class="spinner"></span> Sending OTP...';
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         const res = await fetch(`${API}/api/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.success) {
@@ -80,12 +85,17 @@ otpForm.addEventListener('submit', async (e) => {
     verifyOtpBtn.innerHTML = '<span class="spinner"></span> Verifying...';
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         const res = await fetch(`${API}/api/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: resetEmail, otp, purpose: 'reset' })
+            body: JSON.stringify({ email: resetEmail, otp, purpose: 'reset' }),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.success) {
@@ -125,12 +135,17 @@ passwordForm.addEventListener('submit', async (e) => {
     resetBtn.innerHTML = '<span class="spinner"></span> Resetting...';
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         const res = await fetch(`${API}/api/auth/reset-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: resetEmail, newPassword })
+            body: JSON.stringify({ email: resetEmail, newPassword }),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.success) {

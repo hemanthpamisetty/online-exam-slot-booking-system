@@ -58,12 +58,17 @@ registerForm.addEventListener('submit', async (e) => {
     registerBtn.innerHTML = '<span class="spinner"></span> Registering...';
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         const res = await fetch(`${API}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password, phone, register_number: registerNumber })
+            body: JSON.stringify({ name, email, password, phone, register_number: registerNumber }),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.success) {
@@ -104,12 +109,17 @@ otpForm.addEventListener('submit', async (e) => {
     verifyBtn.innerHTML = '<span class="spinner"></span> Verifying...';
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         const res = await fetch(`${API}/api/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: registerEmail, otp, purpose: 'register' })
+            body: JSON.stringify({ email: registerEmail, otp, purpose: 'register' }),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.success) {

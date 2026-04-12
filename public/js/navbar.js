@@ -223,7 +223,12 @@
     // ============================================
     async function initNavbar() {
         try {
-            const res = await fetch(`${API}/api/auth/me`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const res = await fetch(`${API}/api/auth/me`, { signal: controller.signal });
+            
+            clearTimeout(timeoutId);
             const data = await res.json();
 
             if (!data.success) {
