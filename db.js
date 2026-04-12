@@ -9,20 +9,36 @@ require('dotenv').config();
 // ============================================
 
 // Priority: Railway MYSQL_URL > Railway individual vars > Custom DB_ vars > Defaults
-const dbUrl = process.env.MYSQL_URL || process.env.DATABASE_URL;
+const dbUrl = (process.env.MYSQL_URL || process.env.DATABASE_URL || '').trim();
 
-const DB_CONFIG = dbUrl ? dbUrl : {
-    host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
-    user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
-    password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || 'Hemu@123',
-    database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'exam_system',
-    port: parseInt(process.env.MYSQLPORT) || parseInt(process.env.DB_PORT) || 3306,
-    waitForConnections: true,
-    connectionLimit: 10
-};
+let DB_CONFIG;
+
+if (dbUrl) {
+    console.log('✅ Using Database URL for connection');
+    DB_CONFIG = {
+        uri: dbUrl,
+        ssl: { rejectUnauthorized: false }, // Common requirement for cloud DBs
+        waitForConnections: true,
+        connectionLimit: 10
+    };
+} else {
+    console.log('ℹ️ Using individual environment variables for connection');
+    DB_CONFIG = {
+        host: (process.env.MYSQLHOST || process.env.DB_HOST || 'localhost').trim(),
+        user: (process.env.MYSQLUSER || process.env.DB_USER || 'root').trim(),
+        password: (process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || 'Hemu@123').trim(),
+        database: (process.env.MYSQLDATABASE || process.env.DB_NAME || 'exam_system').trim(),
+        port: parseInt(process.env.MYSQLPORT) || parseInt(process.env.DB_PORT) || 3306,
+        ssl: { rejectUnauthorized: false },
+        waitForConnections: true,
+        connectionLimit: 10
+    };
+    console.log(`🔗 Target: ${DB_CONFIG.host}:${DB_CONFIG.port} (User: ${DB_CONFIG.user}, DB: ${DB_CONFIG.database})`);
+}
 
 // Create a connection pool
-const pool = mysql.createPool(DB_CONFIG);
+// To ensure SSL is applied even with a URL string, we pass options as second argument
+const pool = dbUrl ? mysql.createPool(`${dbUrl}${dbUrl.includes('?') ? '&' : '?'}ssl={"rejectUnauthorized":false}`) : mysql.createPool(DB_CONFIG);
 
 // ============================================
 // Initialize database: create DB and tables if missing
@@ -40,7 +56,8 @@ async function initializeDatabase() {
             host: DB_CONFIG.host,
             user: DB_CONFIG.user,
             password: DB_CONFIG.password,
-            port: DB_CONFIG.port
+            port: DB_CONFIG.port,
+            ssl: { rejectUnauthorized: false }
         });
 
         try {
@@ -60,12 +77,19 @@ async function initializeDatabase() {
     try {
         // Verify connection and create tables
         console.log('⏳ Connecting to database and verifying tables...');
+        const [rows] = await pool.query('SELECT 1 + 1 AS test');
+        console.log('✅ Database connection verified');
         await createTables();
     } catch (error) {
-        console.error('❌ Database connection failed:', error.message);
+        console.error('❌ Database connection failed!');
+        console.error('   Error Code:', error.code);
+        console.error('   Error Message:', error.message);
+        if (error.sqlMessage) console.error('   SQL Message:', error.sqlMessage);
+        
         console.error('\n📋 Troubleshooting:');
-        console.error('   1. Are your environment variables correct? (MYSQLHOST, MYSQLUSER, etc.)');
-        console.error('   2. If using Railway, ensure the MySQL service is linked.');
+        console.error('   1. Ensure your MYSQL_URL variable is correct and has no extra spaces.');
+        console.error('   2. Ensure the MySQL service is "Online" in Railway.');
+        console.error('   3. If using individual variables, check host/user/port.');
         process.exit(1);
     }
 }
