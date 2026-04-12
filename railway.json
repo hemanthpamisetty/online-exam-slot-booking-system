@@ -7,7 +7,6 @@
     "startCommand": "npm start",
     "restartPolicyType": "ON_FAILURE",
     "healthCheckPath": "/api/health",
-    "healthCheckTimeout": 100,
-    "serviceName": "exam-slot-booking"
+    "healthCheckTimeout": 100
   }
 }
