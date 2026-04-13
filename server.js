@@ -3,6 +3,7 @@
 // ============================================
 const express = require('express');
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
@@ -29,14 +30,39 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Production Session Settings
+// Production Session Settings — backed by MySQL to avoid MemoryStore warnings
+// and to support multiple replicas sharing session state.
+const dbUrl = (process.env.MYSQL_URL || process.env.DATABASE_URL || '').trim();
+const sessionStoreOptions = {
+    // express-mysql-session accepts a connection string directly
+    ...(dbUrl ? { uri: dbUrl } : {
+        host: (process.env.MYSQLHOST || process.env.DB_HOST || 'localhost').trim(),
+        user: (process.env.MYSQLUSER || process.env.DB_USER || 'root').trim(),
+        password: (process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '').trim(),
+        database: (process.env.MYSQLDATABASE || process.env.DB_NAME || 'exam_system').trim(),
+        port: parseInt(process.env.MYSQLPORT) || parseInt(process.env.DB_PORT) || 3306,
+    }),
+    expiration: 1000 * 60 * 60 * 24, // 24 hours (matches cookie maxAge)
+    createDatabaseTable: true,        // Auto-create the `sessions` table
+    schema: {
+        tableName: 'sessions',
+        columnNames: {
+            session_id: 'session_id',
+            expires: 'expires',
+            data: 'data'
+        }
+    }
+};
+const sessionStore = new MySQLStore(sessionStoreOptions);
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'prod-secret-key-98765',
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     name: 'exam_session', // Custom cookie name
     cookie: {
-        secure: NODE_ENV === 'production', 
+        secure: NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 1000 * 60 * 60 * 24 // 24 hours
