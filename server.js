@@ -22,20 +22,12 @@ const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// ============================================
-// 1. Core Middleware
-// ============================================
-app.set('trust proxy', 1); // Trust first proxy (essential for Railway/Render)
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 // Production Session Settings — backed by MySQL to avoid MemoryStore warnings
 // and to support multiple replicas sharing session state.
-const dbUrl = (process.env.MYSQL_URL || process.env.DATABASE_URL || '').trim();
+const dbUrlForSession = (process.env.MYSQL_URL || process.env.DATABASE_URL || '').trim();
 const sessionStoreOptions = {
     // express-mysql-session accepts a connection string directly
-    ...(dbUrl ? { uri: dbUrl } : {
+    ...(dbUrlForSession ? { uri: dbUrlForSession } : {
         host: (process.env.MYSQLHOST || process.env.DB_HOST || 'localhost').trim(),
         user: (process.env.MYSQLUSER || process.env.DB_USER || 'root').trim(),
         password: (process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '').trim(),
