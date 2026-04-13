@@ -50,10 +50,7 @@ router.post('/register', asyncHandler(async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query('INSERT INTO users (name, email, password, phone, register_number, is_verified) VALUES (?, ?, ?, ?, ?, 0)', [name, email, hashedPassword, phone, register_number]);
 
-    // Task 1: Non-blocking email attempt (No await)
-    createAndSendOTP(email, 'register').catch(err => console.error('Background Email Error:', err.message));
-
-    res.json({ success: true, message: 'OTP sent to your email.' });
+    res.json({ success: true, message: 'Registration successful! Your account is pending administrator verification. You will receive an email once verified.' });
 }));
 
 router.post('/verify-otp', asyncHandler(async (req, res) => {
@@ -90,6 +87,10 @@ router.post('/login', asyncHandler(async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ success: false, message: 'Invalid credentials' });
+
+    if (user.role === 'student' && !user.is_verified) {
+        return res.status(403).json({ success: false, message: 'Your account is pending administrator verification.' });
+    }
 
     req.session.userId = user.id;
     req.session.userName = user.name;

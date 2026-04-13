@@ -105,6 +105,37 @@ async function sendOTPEmail(toEmail, otp, purpose) {
 }
 
 // ============================================
+// Send Account Verified Email
+// ============================================
+async function sendAccountVerifiedEmail(toEmail) {
+    const mailOptions = {
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@exam.com',
+        to: toEmail,
+        subject: '✅ Account Verified - ExamSlot Booking',
+        html: `
+            <div style="font-family: sans-serif; max-width: 500px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <div style="background: #10b981; color: white; padding: 20px; text-align: center;">
+                    <h2 style="margin:0;">ExamSlot Booking</h2>
+                </div>
+                <div style="padding: 30px; text-align: center;">
+                    <h2 style="color: #10b981;">Account Verified!</h2>
+                    <p>Your account has been manually verified by the administrator.</p>
+                    <p>You can now log in and book your exam slots.</p>
+                    <div style="margin-top: 25px;">
+                        <a href="${process.env.APP_URL || 'http://localhost:3000'}" style="background: #10b981; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Login Now</a>
+                    </div>
+                </div>
+                <div style="background: #f8fafc; padding: 15px; text-align: center; color: #64748b; font-size: 12px;">
+                    This is an automated message. Please do not reply.
+                </div>
+            </div>
+        `
+    };
+
+    return await safeSendMail(mailOptions, 'Account Verification Notification');
+}
+
+// ============================================
 // Other email functions (mocked for speed)
 // ============================================
 async function sendBookingConfirmation(toEmail, data) {
@@ -122,5 +153,6 @@ module.exports = {
     sendBookingConfirmation,
     sendRescheduleNotification,
     sendCancellationNotification,
-    sendPasswordResetConfirmation
+    sendPasswordResetConfirmation,
+    sendAccountVerifiedEmail
 };

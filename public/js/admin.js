@@ -111,7 +111,7 @@ async function loadUsers() {
         const tbody = document.getElementById('usersTableBody');
 
         if (!data.success || data.users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No users found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No users found</td></tr>';
             return;
         }
 
@@ -129,6 +129,9 @@ async function loadUsers() {
                     <td>${roleBadge}</td>
                     <td>${verified}</td>
                     <td>${formatDateTime(u.created_at)}</td>
+                    <td>
+                        ${!u.is_verified && u.role === 'student' ? `<button class="btn btn-sm btn-success" onclick="verifyUser(${u.id})" title="Verify user">✅ Verify</button>` : '—'}
+                    </td>
                 </tr>`;
         });
 
@@ -256,6 +259,31 @@ async function loadLogs() {
 
     } catch (err) {
         console.error('Error loading logs');
+    }
+}
+
+// ============================================
+// Verify a user
+// ============================================
+async function verifyUser(userId) {
+    if (!confirm('Are you sure you want to verify this user? They will receive a notification email.')) return;
+
+    try {
+        const res = await fetch(`${API}/api/admin/verify-user/${userId}`, {
+            method: 'POST'
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            showAlert('User verified successfully!', 'success');
+            loadUsers();
+            loadStats();
+        } else {
+            showAlert(data.message);
+        }
+    } catch (err) {
+        showAlert('Error verifying user');
     }
 }
 

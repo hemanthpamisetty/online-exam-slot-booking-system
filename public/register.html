@@ -54,29 +54,18 @@
             </button>
         </form>
 
-        <!-- Step 2: OTP Verification -->
-        <div id="otpSection" style="display:none;">
-            <div style="background: #dbeafe; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.8rem 1rem; margin-bottom: 1rem; text-align: center;">
-                <p style="color: #1e40af; font-size: 0.88rem; margin: 0;">
-                    📧 Verification OTP sent to <strong id="maskedEmail"></strong>
+        <!-- Success Message Area (Populated by JS) -->
+        <div id="successSection" style="display:none;">
+            <div style="background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 2rem; text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+                <h3 style="color: #065f46; margin-bottom: 0.5rem;">Registration Successful!</h3>
+                <p style="color: #047857; font-size: 0.95rem; line-height: 1.5;">
+                    Your account has been created and is now <strong>pending administrator verification</strong>.
                 </p>
-                <p style="color: #3b82f6; font-size: 0.78rem; margin: 0.3rem 0 0;">
-                    Check your inbox (and spam folder)
+                <p style="color: #047857; font-size: 0.95rem; margin-top: 1rem;">
+                    You will receive an email notification once your account is approved. After that, you'll be able to log in.
                 </p>
-            </div>
-            <form id="otpForm">
-                <div class="form-group">
-                    <label for="otpInput">Enter OTP to Verify</label>
-                    <input type="text" id="otpInput" placeholder="Enter 6-digit OTP from email" maxlength="6" required>
-                </div>
-                <button type="submit" class="btn btn-success btn-block" id="verifyBtn">
-                    Verify & Complete Registration
-                </button>
-            </form>
-            <div style="text-align: center; margin-top: 0.75rem;">
-                <button type="button" class="btn-resend" id="resendBtn" onclick="resendOTP()" disabled>
-                    Resend OTP (<span id="resendTimer">30</span>s)
-                </button>
+                <a href="index.html" class="btn btn-primary" style="margin-top: 1.5rem; display: inline-block; text-decoration: none;">Return to Login</a>
             </div>
         </div>
 

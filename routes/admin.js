@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { asyncHandler } = require('../utils');
+const { sendAccountVerifiedEmail } = require('../email');
 
 // Middleware
 function isAdmin(req, res, next) {
@@ -19,8 +20,36 @@ router.get('/users', isAdmin, asyncHandler(async (req, res) => {
     res.json({ success: true, users });
 }));
 
+router.post('/verify-user/:id', isAdmin, asyncHandler(async (req, res) => {
+    const userId = req.params.id;
+
+    // Get user email before updating
+    const [users] = await pool.query('SELECT email, is_verified FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
+    
+    const user = users[0];
+    if (user.is_verified) return res.status(400).json({ success: false, message: 'User is already verified' });
+
+    // Update status
+    await pool.query('UPDATE users SET is_verified = 1 WHERE id = ?', [userId]);
+
+    // Send email (non-blocking)
+    sendAccountVerifiedEmail(user.email).catch(err => console.error('Verification Email Error:', err.message));
+
+    res.json({ success: true, message: 'User verified successfully and notification email sent.' });
+}));
+
 router.get('/bookings', isAdmin, asyncHandler(async (req, res) => {
-    const [bookings] = await pool.query('SELECT b.id, b.hall_ticket_no, b.status, u.name AS student_name, s.exam_name, s.exam_date, s.venue FROM bookings b JOIN users u ON b.user_id = u.id JOIN slots s ON b.slot_id = s.id ORDER BY b.booking_date DESC');
+    const [bookings] = await pool.query(`
+        SELECT 
+            b.id, b.hall_ticket_no, b.status, 
+            u.name AS student_name, u.email AS student_email,
+            s.exam_name, s.exam_date, s.start_time, s.end_time, s.venue 
+        FROM bookings b 
+        JOIN users u ON b.user_id = u.id 
+        JOIN slots s ON b.slot_id = s.id 
+        ORDER BY b.booking_date DESC
+    `);
     res.json({ success: true, bookings });
 }));
 
