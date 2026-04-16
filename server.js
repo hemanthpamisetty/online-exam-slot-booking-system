@@ -8,6 +8,9 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
+// Fix for Node >= 17 DNS resolution issues (ENOTFOUND, IPv6 vs IPv4)
+require('node:dns').setDefaultResultOrder('ipv4first');
+
 // ============================================
 // 0. Global Process Error Handlers (Issue #6)
 //    Prevents unhandled errors from crashing the process

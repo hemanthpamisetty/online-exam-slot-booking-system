@@ -12,7 +12,7 @@ require('dotenv').config();
 const dbUrl = (process.env.MYSQL_URL || process.env.DATABASE_URL || '').trim();
 
 const DB_CONFIG = {
-    host: (process.env.MYSQLHOST || process.env.DB_HOST || 'localhost').trim(),
+    host: (process.env.MYSQLHOST || process.env.DB_HOST || '127.0.0.1').trim(),
     user: (process.env.MYSQLUSER || process.env.DB_USER || 'root').trim(),
     password: (process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '').trim(),
     database: (process.env.MYSQLDATABASE || process.env.DB_NAME || 'exam_system').trim(),
