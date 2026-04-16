@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     phone VARCHAR(15) NOT NULL,
-    register_number VARCHAR(50) NOT NULL UNIQUE,
+    register_number VARCHAR(20) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('student', 'admin') DEFAULT 'student',
     is_verified TINYINT(1) DEFAULT 0,
@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS otps (
     purpose ENUM('register', 'reset') NOT NULL,
     is_used TINYINT(1) DEFAULT 0,
     expires_at DATETIME NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_otp_lookup (email, otp, purpose, is_used)
 );
 
 -- ============================================
@@ -46,7 +47,9 @@ CREATE TABLE IF NOT EXISTS slots (
     venue VARCHAR(200) NOT NULL,
     capacity INT NOT NULL DEFAULT 30,
     booked INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CHECK (booked >= 0),
+    CHECK (booked <= capacity)
 );
 
 -- ============================================
@@ -60,7 +63,8 @@ CREATE TABLE IF NOT EXISTS bookings (
     status ENUM('confirmed', 'cancelled', 'rescheduled') DEFAULT 'confirmed',
     hall_ticket_no VARCHAR(50) UNIQUE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (slot_id) REFERENCES slots(id) ON DELETE CASCADE
+    FOREIGN KEY (slot_id) REFERENCES slots(id) ON DELETE CASCADE,
+    INDEX idx_user_slot (user_id, slot_id, status)
 );
 
 -- ============================================
@@ -81,7 +85,7 @@ CREATE TABLE IF NOT EXISTS login_logs (
 
 -- Default admin user (password: admin123)
 -- INSERT INTO users (name, email, phone, register_number, password, role, is_verified) 
--- VALUES ('Admin', 'admin@exam.com', '9999999999', 'ADMIN001', '$2a$10$...', 'admin', 1);
+-- VALUES ('Admin', 'admin@exam.com', '9999999999', 'ADMIN00001', '$2a$10$...', 'admin', 1);
 
 -- Sample slots
 -- INSERT INTO slots (exam_name, exam_date, start_time, end_time, venue, capacity) VALUES

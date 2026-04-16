@@ -14,10 +14,10 @@ const dbUrl = (process.env.MYSQL_URL || process.env.DATABASE_URL || '').trim();
 const DB_CONFIG = {
     host: (process.env.MYSQLHOST || process.env.DB_HOST || 'localhost').trim(),
     user: (process.env.MYSQLUSER || process.env.DB_USER || 'root').trim(),
-    password: (process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || 'Hemu@123').trim(),
+    password: (process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '').trim(),
     database: (process.env.MYSQLDATABASE || process.env.DB_NAME || 'exam_system').trim(),
     port: parseInt(process.env.MYSQLPORT) || parseInt(process.env.DB_PORT) || 3306,
-    ssl: { rejectUnauthorized: false }, // Required for Railway/Cloud DBs
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -73,7 +73,7 @@ async function createTables() {
                 name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) NOT NULL UNIQUE,
                 phone VARCHAR(15) NOT NULL,
-                register_number VARCHAR(10) NOT NULL UNIQUE,
+                register_number VARCHAR(20) NOT NULL UNIQUE,
                 password VARCHAR(255) NOT NULL,
                 role ENUM('student', 'admin') DEFAULT 'student',
                 is_verified TINYINT(1) DEFAULT 0,
@@ -90,7 +90,8 @@ async function createTables() {
                 purpose ENUM('register', 'reset') NOT NULL,
                 is_used TINYINT(1) DEFAULT 0,
                 expires_at DATETIME NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_otp_lookup (email, otp, purpose, is_used)
             )
         `);
 
@@ -105,7 +106,9 @@ async function createTables() {
                 venue VARCHAR(200) NOT NULL,
                 capacity INT NOT NULL DEFAULT 30,
                 booked INT NOT NULL DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CHECK (booked >= 0),
+                CHECK (booked <= capacity)
             )
         `);
 
@@ -119,7 +122,8 @@ async function createTables() {
                 status ENUM('confirmed', 'cancelled', 'rescheduled') DEFAULT 'confirmed',
                 hall_ticket_no VARCHAR(50) UNIQUE,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (slot_id) REFERENCES slots(id) ON DELETE CASCADE
+                FOREIGN KEY (slot_id) REFERENCES slots(id) ON DELETE CASCADE,
+                INDEX idx_user_slot (user_id, slot_id, status)
             )
         `);
 
@@ -143,7 +147,7 @@ async function createTables() {
             await connection.query(
                 `INSERT INTO users (name, email, phone, register_number, password, role, is_verified) 
                  VALUES (?, ?, ?, ?, ?, 'admin', 1)`,
-                ['Admin', 'admin@exam.com', '9999999999', 'ADMIN001', hashed]
+                ['Admin', 'admin@exam.com', '9999999999', 'ADMIN00001', hashed]
             );
             console.log('👤 Created default admin account (admin@exam.com)');
         }

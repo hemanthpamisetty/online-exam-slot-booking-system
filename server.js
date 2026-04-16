@@ -8,6 +8,25 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
+// ============================================
+// 0. Global Process Error Handlers (Issue #6)
+//    Prevents unhandled errors from crashing the process
+// ============================================
+process.on('uncaughtException', (err) => {
+    console.error(`\n💥 [UNCAUGHT EXCEPTION] ${new Date().toISOString()}`);
+    console.error('   Error:', err.message);
+    console.error('   Stack:', err.stack);
+    // In production, log and stay alive; in dev, crash for visibility
+    if (process.env.NODE_ENV !== 'production') {
+        process.exit(1);
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error(`\n💥 [UNHANDLED REJECTION] ${new Date().toISOString()}`);
+    console.error('   Reason:', reason);
+});
+
 // Imports
 const { initializeDatabase, pool } = require('./db');
 const { verifyEmailConnection } = require('./email');
@@ -21,6 +40,20 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// ============================================
+// 1. Core Middleware (Issue #1, #2)
+//    express.json(), express.urlencoded(), cors() were MISSING
+// ============================================
+app.set('trust proxy', 1); // Trust Railway reverse proxy for secure cookies
+
+app.use(cors({
+    origin: true,          // Reflect the request origin
+    credentials: true      // Allow cookies to be sent cross-origin
+}));
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Production Session Settings — backed by MySQL to avoid MemoryStore warnings
 // and to support multiple replicas sharing session state.
@@ -57,9 +90,8 @@ app.use(session({
 // 2. Specialized Routes
 // ============================================
 
-// A. Root Route (Task 2)
+// A. Root Route
 app.get('/', (req, res) => {
-    // Return a simple message for status checks, then serve the file
     res.status(200).sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -71,14 +103,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/slots', slotRoutes);
 app.use('/api/admin', adminRoutes);
 
-// D. Health Check (Task 9)
+// D. Health Check
 app.get('/api/health', asyncHandler(async (req, res) => {
     const [rows] = await pool.query('SELECT 1 AS ok');
     res.json({ status: 'healthy', db: rows[0], uptime: process.uptime() });
 }));
 
 // ============================================
-// 3. Global Error Handling (Task 3 & 9)
+// 3. Global Error Handling
 // ============================================
 
 // 404 Handler
@@ -119,23 +151,31 @@ async function startApp() {
         // Step 3: Listen on 0.0.0.0
         const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`\n✅ Server is LIVE on 0.0.0.0:${PORT}`);
-            console.log(`📡 Deployment Environment: ${process.env.NODE_ENV || 'production'}`);
+            console.log(`📡 Deployment Environment: ${NODE_ENV}`);
             console.log(`--- Ready to handle requests ---\n`);
         });
 
-        // Graceful Shutdown
-        process.on('SIGTERM', () => {
-            console.log('🛑 SIGTERM received. Shutting down gracefully...');
+        // Graceful Shutdown (SIGTERM for Railway, SIGINT for local Ctrl+C)
+        const shutdown = (signal) => {
+            console.log(`\n🛑 ${signal} received. Shutting down gracefully...`);
             server.close(() => {
                 pool.end();
                 process.exit(0);
             });
-        });
+            // Force exit after 10s if graceful shutdown hangs
+            setTimeout(() => process.exit(1), 10000);
+        };
+
+        process.on('SIGTERM', () => shutdown('SIGTERM'));
+        process.on('SIGINT', () => shutdown('SIGINT'));
 
     } catch (criticalError) {
         console.error('❌ CRITICAL STARTUP ERROR:', criticalError.message);
         process.exit(1);
     }
 }
+
+// Export app for testing
+module.exports = app;
 
 startApp();
