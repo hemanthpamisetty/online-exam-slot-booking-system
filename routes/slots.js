@@ -267,10 +267,17 @@ router.put('/reschedule', isLoggedIn, asyncHandler(async (req, res) => {
             [oldSlotId]
         );
 
-        // Update the booking to point to the new slot
+        // Update the OLD booking status to 'rescheduled'
         await connection.query(
-            'UPDATE bookings SET slot_id = ? WHERE id = ?',
-            [newSlotId, bookingId]
+            'UPDATE bookings SET status = ? WHERE id = ?',
+            ['rescheduled', bookingId]
+        );
+
+        // Create a NEW booking for the new slot
+        const hallTicketNo = `HT-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+        await connection.query(
+            'INSERT INTO bookings (user_id, slot_id, status, hall_ticket_no) VALUES (?, ?, ?, ?)',
+            [userId, newSlotId, 'confirmed', hallTicketNo]
         );
 
         await connection.commit();
