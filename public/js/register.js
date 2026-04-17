@@ -1,17 +1,12 @@
 // ============================================
 // Registration Page JavaScript
-// Handles: Register + OTP verification
+// Handles: Register (no OTP, pending admin verification)
 // ============================================
 
 const API = '';
 
 const registerForm = document.getElementById('registerForm');
-const otpSection = document.getElementById('otpSection');
-const otpForm = document.getElementById('otpForm');
 const alertBox = document.getElementById('alertBox');
-
-let registerEmail = '';
-let resendCountdown = null;
 
 // ============================================
 // Show alert message
@@ -23,7 +18,7 @@ function showAlert(message, type = 'error') {
 }
 
 // ============================================
-// Step 1: Submit registration form
+// Submit registration form
 // ============================================
 registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -64,6 +59,7 @@ registerForm.addEventListener('submit', async (e) => {
         const res = await fetch(`${API}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ name, email, password, phone, register_number: registerNumber }),
             signal: controller.signal
         });
@@ -72,7 +68,6 @@ registerForm.addEventListener('submit', async (e) => {
         const data = await res.json();
 
         if (data.success) {
-            registerEmail = email;
             // Show Success section, hide form
             registerForm.style.display = 'none';
             document.getElementById('successSection').style.display = 'block';

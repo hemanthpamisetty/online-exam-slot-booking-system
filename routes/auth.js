@@ -154,7 +154,14 @@ router.get('/me', asyncHandler(async (req, res) => {
 // POST /api/auth/logout
 // ============================================
 router.post('/logout', (req, res) => {
-    req.session.destroy(() => res.json({ success: true }));
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Session destroy error:', err.message);
+        }
+        // Clear the session cookie explicitly regardless of destroy result
+        res.clearCookie('exam_session');
+        res.json({ success: true, message: 'Logged out successfully' });
+    });
 });
 
 // ============================================
@@ -223,7 +230,7 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
 }));
 
 // ============================================
-// GET /api/auth/test-email-config (Issue #17 — gate behind admin)
+// GET /api/auth/test-email-config — Verify SMTP connection (admin only)
 // ============================================
 router.get('/test-email-config', asyncHandler(async (req, res) => {
     if (!req.session.userId || req.session.userRole !== 'admin') {
@@ -231,11 +238,66 @@ router.get('/test-email-config', asyncHandler(async (req, res) => {
     }
 
     const { verifyEmailConnection } = require('../email');
-    await verifyEmailConnection();
-    res.json({ 
-        success: true, 
-        message: '✅ Email configuration is CORRECT and connected!'
-    });
+    const connected = await verifyEmailConnection();
+
+    if (connected) {
+        res.json({
+            success: true,
+            message: '✅ Email SMTP connection verified! Emails will be delivered.',
+            status: 'connected'
+        });
+    } else {
+        res.json({
+            success: false,
+            message: '⚠️ Email is in Safe-Mode. Set EMAIL_USER and EMAIL_PASS in environment variables.',
+            status: 'safe-mode'
+        });
+    }
+}));
+
+// ============================================
+// POST /api/auth/send-test-email — Send a real test email (admin only)
+// ============================================
+router.post('/send-test-email', asyncHandler(async (req, res) => {
+    if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const { sendOTPEmail } = require('../email');
+    const { email } = req.body || {};
+
+    // Get admin's email from DB if not provided
+    let targetEmail = email;
+    if (!targetEmail) {
+        const [users] = await pool.query('SELECT email FROM users WHERE id = ?', [req.session.userId]);
+        if (users.length > 0) targetEmail = users[0].email;
+    }
+
+    if (!targetEmail) {
+        return res.status(400).json({ success: false, message: 'Email address required' });
+    }
+
+    const testOTP = '123456';
+    const result = await sendOTPEmail(targetEmail, testOTP, 'reset');
+
+    if (result.mode === 'safe-mode') {
+        res.json({
+            success: false,
+            message: `⚠️ Email is in Safe-Mode (no SMTP credentials). OTP "${testOTP}" logged to console.`,
+            mode: 'safe-mode'
+        });
+    } else if (result.success) {
+        res.json({
+            success: true,
+            message: `✅ Test email sent to ${targetEmail}! Check your inbox (and spam folder).`
+        });
+    } else {
+        res.status(500).json({
+            success: false,
+            message: `❌ Failed to send email: ${result.error}`
+        });
+    }
 }));
 
 module.exports = router;
+

@@ -25,7 +25,7 @@ function showAlert(message, type = 'error') {
 // ============================================
 async function checkSession() {
     try {
-        const res = await fetch(`${API}/api/auth/me`);
+        const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
         const data = await res.json();
         if (data.success) {
             // Already logged in, redirect
@@ -65,6 +65,7 @@ loginForm.addEventListener('submit', async (e) => {
         const res = await fetch(`${API}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ email, password }),
             signal: controller.signal
         });

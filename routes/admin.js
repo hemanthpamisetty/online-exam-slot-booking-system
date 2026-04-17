@@ -129,6 +129,16 @@ router.post('/slots', isAdmin, asyncHandler(async (req, res) => {
 }));
 
 // ============================================
+// GET /api/admin/slots — List all slots (for admin view)
+// ============================================
+router.get('/slots', isAdmin, asyncHandler(async (req, res) => {
+    const [slots] = await pool.query(
+        'SELECT * FROM slots ORDER BY exam_date ASC, start_time ASC'
+    );
+    res.json({ success: true, slots });
+}));
+
+// ============================================
 // DELETE /api/admin/slots/:id — Delete a slot
 // ============================================
 router.delete('/slots/:id', isAdmin, asyncHandler(async (req, res) => {
@@ -153,6 +163,20 @@ router.delete('/slots/:id', isAdmin, asyncHandler(async (req, res) => {
     }
 
     res.json({ success: true, message: 'Slot deleted successfully' });
+}));
+
+// ============================================
+// GET /api/admin/logs — List login logs
+// ============================================
+router.get('/logs', isAdmin, asyncHandler(async (req, res) => {
+    const [logs] = await pool.query(`
+        SELECT l.id, l.email, l.ip_address, l.login_time, u.name AS user_name
+        FROM login_logs l
+        LEFT JOIN users u ON l.user_id = u.id
+        ORDER BY l.login_time DESC
+        LIMIT 100
+    `);
+    res.json({ success: true, logs });
 }));
 
 module.exports = router;

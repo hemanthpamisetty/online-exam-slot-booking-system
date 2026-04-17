@@ -46,7 +46,7 @@ function formatTime(timeStr) {
 // ============================================
 async function checkAuth() {
     try {
-        const res = await fetch(`${API}/api/auth/me`);
+        const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
         const data = await res.json();
 
         if (!data.success) {
@@ -79,7 +79,10 @@ async function loadStats() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        const res = await fetch(`${API}/api/admin/stats`, { signal: controller.signal });
+        const res = await fetch(`${API}/api/admin/stats`, {
+            credentials: 'include',
+            signal: controller.signal
+        });
         
         clearTimeout(timeoutId);
         const data = await res.json();
@@ -103,7 +106,10 @@ async function loadUsers() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        const res = await fetch(`${API}/api/admin/users`, { signal: controller.signal });
+        const res = await fetch(`${API}/api/admin/users`, {
+            credentials: 'include',
+            signal: controller.signal
+        });
         
         clearTimeout(timeoutId);
         const data = await res.json();
@@ -150,7 +156,10 @@ async function loadBookings() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        const res = await fetch(`${API}/api/admin/bookings`, { signal: controller.signal });
+        const res = await fetch(`${API}/api/admin/bookings`, {
+            credentials: 'include',
+            signal: controller.signal
+        });
         
         clearTimeout(timeoutId);
         const data = await res.json();
@@ -191,7 +200,7 @@ async function loadBookings() {
 // ============================================
 async function loadSlots() {
     try {
-        const res = await fetch(`${API}/api/admin/slots`);
+        const res = await fetch(`${API}/api/admin/slots`, { credentials: 'include' });
         const data = await res.json();
 
         const tbody = document.getElementById('slotsTableBody');
@@ -233,7 +242,7 @@ async function loadSlots() {
 // ============================================
 async function loadLogs() {
     try {
-        const res = await fetch(`${API}/api/admin/logs`);
+        const res = await fetch(`${API}/api/admin/logs`, { credentials: 'include' });
         const data = await res.json();
 
         const tbody = document.getElementById('logsTableBody');
@@ -270,7 +279,8 @@ async function verifyUser(userId) {
 
     try {
         const res = await fetch(`${API}/api/admin/verify-user/${userId}`, {
-            method: 'POST'
+            method: 'POST',
+            credentials: 'include'
         });
 
         const data = await res.json();
@@ -295,7 +305,8 @@ async function deleteSlot(slotId) {
 
     try {
         const res = await fetch(`${API}/api/admin/slots/${slotId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'
         });
 
         const data = await res.json();
@@ -336,6 +347,7 @@ document.getElementById('addSlotForm').addEventListener('submit', async (e) => {
         const res = await fetch(`${API}/api/admin/slots`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ exam_name, exam_date, start_time, end_time, venue, capacity }),
             signal: controller.signal
         });
@@ -367,14 +379,6 @@ function switchTab(tabName) {
     // Activate selected tab and content
     document.getElementById(`tab-${tabName}`).classList.add('active');
 
-    // Find and activate the matching button
-    const buttons = document.querySelectorAll('.tab-btn');
-    buttons.forEach(btn => {
-        if (btn.textContent.toLowerCase().includes(tabName.toLowerCase().replace('addslot', 'add slot'))) {
-            btn.classList.add('active');
-        }
-    });
-
     // Fix: better tab matching
     const tabMap = {
         'users': 0,
@@ -384,6 +388,7 @@ function switchTab(tabName) {
         'addSlot': 4
     };
 
+    const buttons = document.querySelectorAll('.tab-btn');
     buttons.forEach(b => b.classList.remove('active'));
     if (tabMap[tabName] !== undefined) {
         buttons[tabMap[tabName]].classList.add('active');
@@ -395,8 +400,12 @@ function switchTab(tabName) {
 // ============================================
 async function logout() {
     try {
-        await fetch(`${API}/api/auth/logout`, { method: 'POST' });
+        await fetch(`${API}/api/auth/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        });
     } catch (err) { /* ignore */ }
+    localStorage.removeItem('user');
     window.location.href = 'index.html';
 }
 

@@ -4,7 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
-const { sendBookingConfirmation, sendCancellationNotification } = require('../email');
+const { sendBookingConfirmation, sendCancellationNotification, sendRescheduleNotification } = require('../email');
 const { asyncHandler, isPositiveInt } = require('../utils');
 
 // ============================================
@@ -161,6 +161,125 @@ router.delete('/cancel/:bookingId', isLoggedIn, asyncHandler(async (req, res) =>
 
         res.json({ success: true, message: 'Booking cancelled successfully' });
 
+    } catch (err) {
+        await connection.rollback();
+        connection.release();
+        throw err;
+    }
+}));
+
+// ============================================
+// GET /api/slots/hall-ticket/:bookingId — Get hall ticket data
+// ============================================
+router.get('/hall-ticket/:bookingId', isLoggedIn, asyncHandler(async (req, res) => {
+    const bookingId = req.params.bookingId;
+
+    if (!isPositiveInt(bookingId)) {
+        return res.status(400).json({ success: false, message: 'Valid booking ID is required' });
+    }
+
+    const [rows] = await pool.query(`
+        SELECT 
+            b.id, b.hall_ticket_no, b.status, b.booking_date,
+            u.name AS student_name, u.email AS student_email, u.phone AS student_phone, u.register_number,
+            s.exam_name, s.exam_date, s.start_time, s.end_time, s.venue
+        FROM bookings b
+        JOIN users u ON b.user_id = u.id
+        JOIN slots s ON b.slot_id = s.id
+        WHERE b.id = ? AND b.user_id = ?
+    `, [bookingId, req.session.userId]);
+
+    if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    res.json({ success: true, ticket: rows[0] });
+}));
+
+// ============================================
+// PUT /api/slots/reschedule — Reschedule a booking to a new slot
+// ============================================
+router.put('/reschedule', isLoggedIn, asyncHandler(async (req, res) => {
+    const { bookingId, newSlotId } = req.body || {};
+    const userId = req.session.userId;
+
+    if (!bookingId || !isPositiveInt(bookingId)) {
+        return res.status(400).json({ success: false, message: 'Valid booking ID is required' });
+    }
+    if (!newSlotId || !isPositiveInt(newSlotId)) {
+        return res.status(400).json({ success: false, message: 'Valid new slot ID is required' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // Verify the booking belongs to the user and is confirmed
+        const [bookings] = await connection.query(
+            'SELECT * FROM bookings WHERE id = ? AND user_id = ? AND status = ?',
+            [bookingId, userId, 'confirmed']
+        );
+
+        if (bookings.length === 0) {
+            await connection.rollback();
+            connection.release();
+            return res.status(404).json({ success: false, message: 'Booking not found or not eligible for rescheduling' });
+        }
+
+        const oldSlotId = bookings[0].slot_id;
+
+        if (Number(oldSlotId) === Number(newSlotId)) {
+            await connection.rollback();
+            connection.release();
+            return res.status(400).json({ success: false, message: 'New slot is the same as current slot' });
+        }
+
+        // Check for duplicate booking on new slot
+        const [existingBooking] = await connection.query(
+            'SELECT id FROM bookings WHERE user_id = ? AND slot_id = ? AND status = ?',
+            [userId, newSlotId, 'confirmed']
+        );
+        if (existingBooking.length > 0) {
+            await connection.rollback();
+            connection.release();
+            return res.status(400).json({ success: false, message: 'You already have a booking for the new slot' });
+        }
+
+        // Atomic: increment new slot's booked count (fails if full)
+        const [updateResult] = await connection.query(
+            'UPDATE slots SET booked = booked + 1 WHERE id = ? AND booked < capacity',
+            [newSlotId]
+        );
+
+        if (updateResult.affectedRows === 0) {
+            await connection.rollback();
+            connection.release();
+            return res.status(400).json({ success: false, message: 'New slot is full or does not exist' });
+        }
+
+        // Decrement old slot's booked count
+        await connection.query(
+            'UPDATE slots SET booked = GREATEST(booked - 1, 0) WHERE id = ?',
+            [oldSlotId]
+        );
+
+        // Update the booking to point to the new slot
+        await connection.query(
+            'UPDATE bookings SET slot_id = ? WHERE id = ?',
+            [newSlotId, bookingId]
+        );
+
+        await connection.commit();
+        connection.release();
+
+        // Async email notification (fire & forget)
+        pool.query('SELECT email FROM users WHERE id = ?', [userId])
+            .then(([users]) => {
+                if (users.length > 0) sendRescheduleNotification(users[0].email);
+            })
+            .catch(err => console.error('Reschedule email error:', err.message));
+
+        res.json({ success: true, message: 'Booking rescheduled successfully' });
     } catch (err) {
         await connection.rollback();
         connection.release();

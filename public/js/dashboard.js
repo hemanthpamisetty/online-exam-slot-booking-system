@@ -45,7 +45,10 @@ async function checkAuth() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        const res = await fetch(`${API}/api/auth/me`, { signal: controller.signal });
+        const res = await fetch(`${API}/api/auth/me`, {
+            credentials: 'include',
+            signal: controller.signal
+        });
         
         clearTimeout(timeoutId);
         const data = await res.json();
@@ -71,11 +74,15 @@ async function checkAuth() {
 // ============================================
 // Load user's bookings
 // ============================================
+async function loadBookings() {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        const res = await fetch(`${API}/api/slots/my-bookings`, { signal: controller.signal });
+        const res = await fetch(`${API}/api/slots/my-bookings`, {
+            credentials: 'include',
+            signal: controller.signal
+        });
         
         clearTimeout(timeoutId);
         const data = await res.json();
@@ -154,6 +161,7 @@ async function cancelBooking(bookingId) {
 
         const res = await fetch(`${API}/api/slots/cancel/${bookingId}`, {
             method: 'DELETE',
+            credentials: 'include',
             signal: controller.signal
         });
 
@@ -178,7 +186,7 @@ async function openReschedule(bookingId) {
     currentBookingId = bookingId;
 
     try {
-        const res = await fetch(`${API}/api/slots`);
+        const res = await fetch(`${API}/api/slots`, { credentials: 'include' });
         const data = await res.json();
 
         const container = document.getElementById('availableSlotsContainer');
@@ -225,6 +233,7 @@ async function reschedule(newSlotId) {
         const res = await fetch(`${API}/api/slots/reschedule`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ bookingId: currentBookingId, newSlotId })
         });
 
@@ -257,8 +266,12 @@ function closeModal() {
 // ============================================
 async function logout() {
     try {
-        await fetch(`${API}/api/auth/logout`, { method: 'POST' });
+        await fetch(`${API}/api/auth/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        });
     } catch (err) { /* ignore */ }
+    localStorage.removeItem('user');
     window.location.href = 'index.html';
 }
 

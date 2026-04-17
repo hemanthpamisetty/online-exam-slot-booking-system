@@ -38,7 +38,7 @@ function formatTime(timeStr) {
 // ============================================
 async function checkAuth() {
     try {
-        const res = await fetch(`${API}/api/auth/me`);
+        const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
         const data = await res.json();
         if (!data.success) {
             window.location.href = 'index.html';
@@ -64,7 +64,9 @@ async function loadTicket() {
     }
 
     try {
-        const res = await fetch(`${API}/api/slots/hall-ticket/${bookingId}`);
+        const res = await fetch(`${API}/api/slots/hall-ticket/${bookingId}`, {
+            credentials: 'include'
+        });
         const data = await res.json();
 
         if (!data.success) {
@@ -102,8 +104,12 @@ async function loadTicket() {
 // ============================================
 async function logout() {
     try {
-        await fetch(`${API}/api/auth/logout`, { method: 'POST' });
+        await fetch(`${API}/api/auth/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        });
     } catch (err) { /* ignore */ }
+    localStorage.removeItem('user');
     window.location.href = 'index.html';
 }
 

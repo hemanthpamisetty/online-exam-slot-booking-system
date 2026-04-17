@@ -208,7 +208,10 @@
     // ============================================
     async function handleLogout() {
         try {
-            await fetch(`${API}/api/auth/logout`, { method: 'POST' });
+            await fetch(`${API}/api/auth/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            });
         } catch (err) {
             // Ignore network errors during logout
         }
@@ -226,7 +229,10 @@
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-            const res = await fetch(`${API}/api/auth/me`, { signal: controller.signal });
+            const res = await fetch(`${API}/api/auth/me`, {
+                credentials: 'include',
+                signal: controller.signal
+            });
             
             clearTimeout(timeoutId);
             const data = await res.json();

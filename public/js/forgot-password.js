@@ -44,6 +44,7 @@ emailForm.addEventListener('submit', async (e) => {
         const res = await fetch(`${API}/api/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ email }),
             signal: controller.signal
         });
@@ -91,6 +92,7 @@ otpForm.addEventListener('submit', async (e) => {
         const res = await fetch(`${API}/api/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ email: resetEmail, otp, purpose: 'reset' }),
             signal: controller.signal
         });
@@ -121,6 +123,7 @@ passwordForm.addEventListener('submit', async (e) => {
 
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
+    const otp = document.getElementById('otpInput').value.trim();
 
     if (!newPassword || newPassword.length < 6) {
         return showAlert('Password must be at least 6 characters');
@@ -141,7 +144,8 @@ passwordForm.addEventListener('submit', async (e) => {
         const res = await fetch(`${API}/api/auth/reset-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: resetEmail, newPassword }),
+            credentials: 'include',
+            body: JSON.stringify({ email: resetEmail, otp, newPassword }),
             signal: controller.signal
         });
 
@@ -165,17 +169,18 @@ passwordForm.addEventListener('submit', async (e) => {
 });
 
 // ============================================
-// Resend OTP
+// Resend OTP — calls forgot-password endpoint again
 // ============================================
 async function resendOTP() {
     const resendBtn = document.getElementById('resendBtn');
     resendBtn.disabled = true;
 
     try {
-        const res = await fetch(`${API}/api/auth/resend-otp`, {
+        const res = await fetch(`${API}/api/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: resetEmail, purpose: 'reset' })
+            credentials: 'include',
+            body: JSON.stringify({ email: resetEmail })
         });
 
         const data = await res.json();

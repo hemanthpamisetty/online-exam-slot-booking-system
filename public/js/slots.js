@@ -38,7 +38,7 @@ function formatTime(timeStr) {
 // ============================================
 async function checkAuth() {
     try {
-        const res = await fetch(`${API}/api/auth/me`);
+        const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
         const data = await res.json();
         if (!data.success) {
             window.location.href = 'index.html';
@@ -62,7 +62,10 @@ async function loadSlots() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        const res = await fetch(`${API}/api/slots`, { signal: controller.signal });
+        const res = await fetch(`${API}/api/slots`, {
+            credentials: 'include',
+            signal: controller.signal
+        });
         
         clearTimeout(timeoutId);
         const data = await res.json();
@@ -140,6 +143,7 @@ async function bookSlot(slotId) {
         const res = await fetch(`${API}/api/slots/book`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ slotId }),
             signal: controller.signal
         });
@@ -163,8 +167,12 @@ async function bookSlot(slotId) {
 // ============================================
 async function logout() {
     try {
-        await fetch(`${API}/api/auth/logout`, { method: 'POST' });
+        await fetch(`${API}/api/auth/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        });
     } catch (err) { /* ignore */ }
+    localStorage.removeItem('user');
     window.location.href = 'index.html';
 }
 
