@@ -116,9 +116,13 @@ async function sendViaBrevoApi(mailOptions, description) {
         return { success: false, error: 'Sender email not configured. Set EMAIL_FROM in environment variables.' };
     }
 
+    // Set up a dynamic Reply-To so student replies actually reach you
+    const replyToEmail = process.env.EMAIL_USER || process.env.EMAIL_FROM || senderEmail;
+    
     // Convert mailOptions to Brevo payload format
     const payload = {
         sender: { email: senderEmail, name: 'ExamSlot Booking' },
+        replyTo: { email: replyToEmail, name: 'ExamSlot Support' },
         to: [{ email: mailOptions.to }],
         subject: mailOptions.subject,
         htmlContent: mailOptions.html
