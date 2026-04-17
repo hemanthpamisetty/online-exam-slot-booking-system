@@ -86,7 +86,7 @@ function buildEmailTemplate(title, bodyContent) {
     return `
     <div style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;max-width:520px;margin:20px auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
         <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;padding:25px;text-align:center;">
-            <h2 style="margin:0;font-size:22px;">🎓 ExamSlot Booking</h2>
+            <h2 style="margin:0;font-size:22px;">ExamSlot Booking</h2>
             <p style="margin:5px 0 0;font-size:14px;opacity:0.9;">${title}</p>
         </div>
         <div style="padding:30px;background:#ffffff;">
@@ -194,32 +194,24 @@ async function safeSendMail(mailOptions, description) {
 
 async function sendOTPEmail(toEmail, otp, purpose) {
     const isRegister = purpose === 'register';
-    const subject = isRegister ? '🎓 Verify Your Account' : '🔑 Password Reset OTP';
+    const subject = isRegister ? 'Verify Your Account - ExamSlot Booking' : 'Password Reset OTP - ExamSlot Booking';
 
-    console.log(`\n🔑 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-    console.log(`🔑 OTP for ${toEmail}: [ ${otp} ]`);
-    console.log(`🔑 Purpose: ${purpose}`);
-    console.log(`🔑 Expires: 5 minutes`);
-    console.log(`🔑 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`\n--- OTP DEBUG ---`);
+    console.log(`OTP for ${toEmail}: [ ${otp} ]`);
+    console.log(`Purpose: ${purpose}`);
+    console.log(`Expires: 5 minutes`);
+    console.log(`-----------------`);
 
     const mailOptions = {
         to: toEmail,
-        subject: `${subject} - ExamSlot Booking`,
-        html: `
-            <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 500px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
-                <div style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 25px; text-align: center;">
-                    <h2 style="margin:0; font-size: 22px;">🎓 ExamSlot Booking</h2>
-                    <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">${isRegister ? 'Account Verification' : 'Password Reset'}</p>
-                </div>
-                <div style="padding: 35px; text-align: center; background: #ffffff;">
-                    <p style="color: #334155; font-size: 16px; margin: 0 0 20px;">Your verification code is:</p>
-                    <div style="background: #f1f5f9; border-radius: 10px; padding: 20px; display: inline-block;">
-                        <h1 style="font-size: 42px; color: #4f46e5; letter-spacing: 8px; margin: 0; font-family: 'Courier New', monospace; font-weight: bold;">${otp}</h1>
-                    </div>
-                    <p style="color: #64748b; font-size: 13px; margin: 20px 0 0;">⏱️ This code is valid for <strong>5 minutes</strong>.</p>
-                </div>
+        subject: subject,
+        html: buildEmailTemplate(isRegister ? 'Account Verification' : 'Password Reset', `
+            <p style="color:#334155;font-size:16px;margin:0 0 20px;">Your verification code is:</p>
+            <div style="background:#f1f5f9;border-radius:10px;padding:20px;display:inline-block;">
+                <h1 style="font-size:42px;color:#4f46e5;letter-spacing:8px;margin:0;font-family:'Courier New',monospace;font-weight:bold;">${otp}</h1>
             </div>
-        `
+            <p style="color:#64748b;font-size:13px;margin:20px 0 0;">This code is valid for <strong>5 minutes</strong>.</p>
+        `)
     };
 
     return await safeSendMail(mailOptions, `OTP (${purpose})`);
@@ -231,7 +223,7 @@ async function sendAccountVerifiedEmail(toEmail) {
     return await safeSendMail({
         to: toEmail,
         subject: 'Account Verified - ExamSlot Booking',
-        html: buildEmailTemplate('Account Verified ✅', `
+        html: buildEmailTemplate('Account Verified', `
             <p style="color:#334155;font-size:16px;">Great news! Your account has been <strong>verified</strong> by the administrator.</p>
             <p style="color:#334155;font-size:16px;">You can now log in and book your exam slots.</p>
             <div style="text-align:center;margin:25px 0;">
@@ -246,7 +238,7 @@ async function sendBookingConfirmation(toEmail, data) {
     return await safeSendMail({
         to: toEmail,
         subject: 'Booking Confirmed - ExamSlot Booking',
-        html: buildEmailTemplate('Booking Confirmed 🎫', `
+        html: buildEmailTemplate('Booking Confirmed', `
             <p style="color:#334155;font-size:16px;">Your exam slot has been booked successfully!</p>
             <div style="background:#f1f5f9;border-radius:10px;padding:20px;text-align:center;margin:20px 0;">
                 <p style="color:#64748b;font-size:13px;margin:0 0 5px;">Your Hall Ticket Number</p>
@@ -261,7 +253,7 @@ async function sendCancellationNotification(toEmail) {
     return await safeSendMail({
         to: toEmail,
         subject: 'Booking Cancelled - ExamSlot Booking',
-        html: buildEmailTemplate('Booking Cancelled ❌', `
+        html: buildEmailTemplate('Booking Cancelled', `
             <p style="color:#334155;font-size:16px;">Your exam slot booking has been <strong>cancelled</strong> as requested.</p>
             <p style="color:#64748b;font-size:14px;">If this was a mistake, you can book a new slot from your dashboard.</p>
         `)
@@ -272,7 +264,7 @@ async function sendRescheduleNotification(toEmail) {
     return await safeSendMail({
         to: toEmail,
         subject: 'Booking Rescheduled - ExamSlot Booking',
-        html: buildEmailTemplate('Booking Rescheduled 🔄', `
+        html: buildEmailTemplate('Booking Rescheduled', `
             <p style="color:#334155;font-size:16px;">Your exam slot booking has been <strong>rescheduled</strong> successfully.</p>
             <p style="color:#64748b;font-size:14px;">Please check your dashboard for the updated slot details and new hall ticket.</p>
         `)
@@ -282,8 +274,11 @@ async function sendRescheduleNotification(toEmail) {
 async function sendPasswordResetConfirmation(toEmail) {
     return await safeSendMail({
         to: toEmail,
-        subject: '✅ Password Reset Successful',
-        html: `<p>Your password was reset successfully.</p>`
+        subject: 'Password Reset Successful - ExamSlot Booking',
+        html: buildEmailTemplate('Password Reset Successful', `
+            <p style="color:#334155;font-size:16px;">Your password has been reset successfully.</p>
+            <p style="color:#64748b;font-size:14px;">You can now log in with your new password.</p>
+        `)
     }, 'Password Reset Confirmation');
 }
 
