@@ -80,21 +80,55 @@ function getFromAddress() {
 }
 
 // ============================================
+// Shared HTML Email Template Builder
+// ============================================
+function buildEmailTemplate(title, bodyContent) {
+    return `
+    <div style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;max-width:520px;margin:20px auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+        <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;padding:25px;text-align:center;">
+            <h2 style="margin:0;font-size:22px;">🎓 ExamSlot Booking</h2>
+            <p style="margin:5px 0 0;font-size:14px;opacity:0.9;">${title}</p>
+        </div>
+        <div style="padding:30px;background:#ffffff;">
+            ${bodyContent}
+        </div>
+        <div style="background:#f8fafc;padding:15px;text-align:center;border-top:1px solid #e2e8f0;">
+            <p style="color:#94a3b8;font-size:12px;margin:0;">This is an automated message from ExamSlot Booking System.</p>
+        </div>
+    </div>`;
+}
+
+// ============================================
 // Brevo HTTP API Sender
 // ============================================
 async function sendViaBrevoApi(mailOptions, description) {
     const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
-    
+    const senderEmail = (mailOptions.from || '').trim();
+
+    // ---- CRITICAL VALIDATION ----
+    // If sender is empty or uses fake fallback domain, emails will be silently dropped by Brevo
+    if (!senderEmail || senderEmail === 'noreply@exam.com') {
+        console.error(`\n🚨 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+        console.error(`🚨 EMAIL BLOCKED: Sender address is "${senderEmail}"`);
+        console.error(`🚨 This email is NOT verified in Brevo, so emails will be DROPPED.`);
+        console.error(`🚨 FIX: Set EMAIL_FROM=your_verified_brevo_email@gmail.com in Railway Variables`);
+        console.error(`🚨 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+        return { success: false, error: 'Sender email not configured. Set EMAIL_FROM in environment variables.' };
+    }
+
     // Convert mailOptions to Brevo payload format
     const payload = {
-        sender: { email: mailOptions.from, name: 'ExamSlot Booking' },
+        sender: { email: senderEmail, name: 'ExamSlot Booking' },
         to: [{ email: mailOptions.to }],
         subject: mailOptions.subject,
         htmlContent: mailOptions.html
     };
 
     try {
-        console.log(`📧 Sending email via Brevo HTTP API: "${description}" to ${mailOptions.to}...`);
+        console.log(`📧 Sending via Brevo API: "${description}"`);
+        console.log(`   From: ${senderEmail}`);
+        console.log(`   To:   ${mailOptions.to}`);
+        console.log(`   Subj: ${mailOptions.subject}`);
         
         const response = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
@@ -109,12 +143,13 @@ async function sendViaBrevoApi(mailOptions, description) {
         const data = await response.json().catch(() => null);
 
         if (response.ok) {
-            console.log(`✅ Email sent successfully via Brevo: "${description}" (Message ID: ${data?.messageId})`);
+            console.log(`✅ Email DELIVERED via Brevo: "${description}" (Message ID: ${data?.messageId})`);
             return { success: true, messageId: data?.messageId };
         } else {
-            console.error(`❌ Brevo API Error [${response.status}]:`, data || response.statusText);
-            if (response.status === 400 && data?.code === 'invalid_parameter') {
-                console.error("   🚨 This usually means your sender email is NOT verified in Brevo.");
+            console.error(`❌ Brevo API Error [${response.status}]:`, JSON.stringify(data, null, 2));
+            if (response.status === 400) {
+                console.error(`   🚨 Likely cause: sender "${senderEmail}" is NOT verified in Brevo Dashboard.`);
+                console.error(`   🚨 Go to Brevo → Settings → Senders → Add & verify this email.`);
             }
             return { success: false, error: data?.message || response.statusText };
         }
@@ -191,11 +226,18 @@ async function sendOTPEmail(toEmail, otp, purpose) {
 }
 
 async function sendAccountVerifiedEmail(toEmail) {
-    const appUrl = process.env.APP_URL || process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:3000';
+    const domain = process.env.RAILWAY_PUBLIC_DOMAIN;
+    const appUrl = process.env.APP_URL || (domain ? `https://${domain}` : 'http://localhost:3000');
     return await safeSendMail({
         to: toEmail,
-        subject: '✅ Account Verified - ExamSlot Booking',
-        html: `<p>Your account was verified! Login at ${appUrl}</p>`
+        subject: 'Account Verified - ExamSlot Booking',
+        html: buildEmailTemplate('Account Verified ✅', `
+            <p style="color:#334155;font-size:16px;">Great news! Your account has been <strong>verified</strong> by the administrator.</p>
+            <p style="color:#334155;font-size:16px;">You can now log in and book your exam slots.</p>
+            <div style="text-align:center;margin:25px 0;">
+                <a href="${appUrl}" style="background:#4f46e5;color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">Login Now</a>
+            </div>
+        `)
     }, 'Account Verified');
 }
 
@@ -203,24 +245,37 @@ async function sendBookingConfirmation(toEmail, data) {
     const hallTicket = data?.hall_ticket_no || 'N/A';
     return await safeSendMail({
         to: toEmail,
-        subject: '🎫 Booking Confirmed - ExamSlot Booking',
-        html: `<p>Booked! Hall ticket: ${hallTicket}</p>`
+        subject: 'Booking Confirmed - ExamSlot Booking',
+        html: buildEmailTemplate('Booking Confirmed 🎫', `
+            <p style="color:#334155;font-size:16px;">Your exam slot has been booked successfully!</p>
+            <div style="background:#f1f5f9;border-radius:10px;padding:20px;text-align:center;margin:20px 0;">
+                <p style="color:#64748b;font-size:13px;margin:0 0 5px;">Your Hall Ticket Number</p>
+                <h2 style="color:#4f46e5;font-size:28px;letter-spacing:3px;margin:0;font-family:'Courier New',monospace;">${hallTicket}</h2>
+            </div>
+            <p style="color:#64748b;font-size:14px;">Please save this hall ticket number. You will need it on exam day.</p>
+        `)
     }, 'Booking Confirmation');
 }
 
 async function sendCancellationNotification(toEmail) {
     return await safeSendMail({
         to: toEmail,
-        subject: '❌ Booking Cancelled - ExamSlot Booking',
-        html: `<p>Your exam slot booking has been cancelled.</p>`
+        subject: 'Booking Cancelled - ExamSlot Booking',
+        html: buildEmailTemplate('Booking Cancelled ❌', `
+            <p style="color:#334155;font-size:16px;">Your exam slot booking has been <strong>cancelled</strong> as requested.</p>
+            <p style="color:#64748b;font-size:14px;">If this was a mistake, you can book a new slot from your dashboard.</p>
+        `)
     }, 'Cancellation');
 }
 
 async function sendRescheduleNotification(toEmail) {
     return await safeSendMail({
         to: toEmail,
-        subject: '🔄 Booking Rescheduled - ExamSlot Booking',
-        html: `<p>Your exam slot has been rescheduled.</p>`
+        subject: 'Booking Rescheduled - ExamSlot Booking',
+        html: buildEmailTemplate('Booking Rescheduled 🔄', `
+            <p style="color:#334155;font-size:16px;">Your exam slot booking has been <strong>rescheduled</strong> successfully.</p>
+            <p style="color:#64748b;font-size:14px;">Please check your dashboard for the updated slot details and new hall ticket.</p>
+        `)
     }, 'Rescheduled');
 }
 
