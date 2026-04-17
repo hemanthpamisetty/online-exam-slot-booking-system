@@ -41,8 +41,11 @@ const slotRoutes = require('./routes/slots');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
-const PORT = parseInt(process.env.PORT, 10) || 3000;
+const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Debugging DB_HOST directly underneath dotenv initialization:
+console.log("DB_HOST:", process.env.DB_HOST);
 
 // ============================================
 // 1. Core Middleware (Issue #1, #2)
@@ -125,12 +128,12 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     const status = err.status || 500;
     const message = err.message || 'Internal Server Error';
-    
+
     console.error(`\n❌ [ERROR] ${new Date().toISOString()}`);
     console.error(`   Path: ${req.path}`);
     console.error(`   Message: ${message}`);
     if (NODE_ENV !== 'production') console.error(err.stack);
-    
+
     res.status(status).json({
         success: false,
         message: NODE_ENV === 'production' ? 'An unexpected server error occurred' : message,
@@ -144,7 +147,7 @@ app.use((err, req, res, next) => {
 async function startApp() {
     try {
         console.log('\n--- 🚀 Starting Exam Booking System ---');
-        
+
         // Step 1: Initialize Database
         await initializeDatabase();
 

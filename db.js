@@ -37,11 +37,14 @@ const pool = dbUrl
 console.log(`🗄️  Database Pool initialized. Target: ${dbUrl ? 'URL' : DB_CONFIG.host}`);
 
 // ============================================
-// Database Initialization Logic
+// Database Initialization Logic & Retry
 // ============================================
-async function initializeDatabase() {
+const MAX_RETRIES = 5;
+const RETRY_DELAY = 3000;
+
+async function initializeDatabase(retries = MAX_RETRIES) {
     try {
-        console.log('⏳ Verifying database connection...');
+        console.log(`⏳ Verifying database connection... (Attempts left: ${retries})`);
         const [rows] = await pool.query('SELECT 1 + 1 AS test');
         console.log('✅ Base connection verified');
 
@@ -50,11 +53,18 @@ async function initializeDatabase() {
         
         console.log('🚀 Database initialization complete');
     } catch (error) {
-        console.error('❌ CRITICAL: Database connection failed!');
+        console.error('❌ Database connection failed!');
         console.error('   Error Message:', error.message);
-        console.error('   Check your MYSQL_URL or DB_HOST variables in Railway Settings.');
         
-        // In production, we exit if DB is not available
+        if (retries > 0) {
+            console.log(`🔄 Retrying in ${RETRY_DELAY / 1000} seconds...`);
+            await new Promise(res => setTimeout(res, RETRY_DELAY));
+            return initializeDatabase(retries - 1);
+        }
+
+        console.error('❌ CRITICAL: Max retries reached. Database is down.');
+        console.error('   Please check your MYSQL_URL or DB_HOST variables in Railway Settings.');
+        // In production, we exit if DB is completely unavailable
         process.exit(1);
     }
 }

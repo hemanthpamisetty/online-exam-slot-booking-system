@@ -133,8 +133,13 @@ async function loadSlots() {
 // ============================================
 // Book a slot
 // ============================================
+let isBookingInProgress = false;
+
 async function bookSlot(slotId) {
+    if (isBookingInProgress) return;
     if (!confirm('Are you sure you want to book this slot?')) return;
+
+    isBookingInProgress = true;
 
     try {
         const controller = new AbortController();
@@ -159,6 +164,8 @@ async function bookSlot(slotId) {
         }
     } catch (err) {
         showAlert('Error booking slot');
+    } finally {
+        isBookingInProgress = false;
     }
 }
 

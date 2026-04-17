@@ -52,7 +52,11 @@ router.post('/book', isLoggedIn, asyncHandler(async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        // --- Duplicate booking check (Issue #4) ---
+        // --- Serialize Request for this User (Issue #4 Race Condition Fix) ---
+        // Lock the user row to prevent the same user from executing two booking requests simultaneously
+        await connection.query('SELECT id FROM users WHERE id = ? FOR UPDATE', [userId]);
+
+        // --- Duplicate booking check ---
         const [existingBooking] = await connection.query(
             'SELECT id FROM bookings WHERE user_id = ? AND slot_id = ? AND status = ?',
             [userId, slotIdNum, 'confirmed']
