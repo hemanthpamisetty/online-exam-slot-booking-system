@@ -120,44 +120,23 @@ app.get('/api/test-email', async (req, res) => {
     const testTo = req.query.to;
     if (!testTo) return res.status(400).json({ error: 'Add ?to=your@email.com to the URL' });
 
-    const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
-    const senderEmail = (process.env.EMAIL_FROM || '').trim();
-
-    if (!brevoApiKey) return res.json({ error: 'BREVO_API_KEY is not set in environment variables' });
-    if (!senderEmail) return res.json({ error: 'EMAIL_FROM is not set in environment variables' });
-
-    const payload = {
-        sender: { email: senderEmail, name: 'ExamSlot Booking' },
-        to: [{ email: testTo }],
-        subject: 'Test Email from ExamSlot Booking',
-        htmlContent: '<h2>This is a test email</h2><p>If you received this, your email system is working correctly.</p>'
-    };
-
+    const { sendBookingConfirmation } = require('./email');
+    
     try {
-        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': brevoApiKey,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json().catch(() => null);
-
+        const result = await sendBookingConfirmation(testTo, { hall_ticket_no: 'TEST-12345' });
+        
         res.json({
-            brevoHttpStatus: response.status,
-            brevoResponse: data,
-            senderUsed: senderEmail,
+            emailMode: process.env.EMAIL_USER ? 'gmail-smtp (port 465)' : (process.env.BREVO_API_KEY ? 'brevo-api' : 'safe-mode'),
+            senderUsed: process.env.EMAIL_USER || process.env.EMAIL_FROM || 'none',
             recipientUsed: testTo,
-            apiKeyPrefix: brevoApiKey.substring(0, 10) + '...',
-            verdict: response.ok ? 'Brevo accepted the email. Check spam folder!' : 'Brevo REJECTED the email. See brevoResponse for reason.'
+            result: result,
+            tip: result.success ? 'Email sent! Check inbox AND spam folder.' : 'Email failed. Check Railway logs for details.'
         });
     } catch (err) {
-        res.json({ error: 'Failed to contact Brevo API', details: err.message });
+        res.json({ error: 'Test email failed', details: err.message });
     }
 });
+
 
 // ============================================
 // 3. Global Error Handling

@@ -1,75 +1,72 @@
 // ============================================
 // Email Service Module (Production Hardened)
-// Primary: Brevo HTTP API (Bypasses Railway SMTP blocks)
-// Fallback: Nodemailer (For Gmail testing)
+// Priority 1: Gmail SMTP Port 465 (SSL) — best deliverability
+// Priority 2: Brevo HTTP API — fallback
+// Priority 3: Safe-Mode — OTPs logged to console
 // ============================================
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 let transporterReady = false;
 let transporter = null;
-let useBrevoApi = false;
+let emailMode = 'safe-mode'; // 'gmail-smtp' | 'brevo-api' | 'safe-mode'
 
 // ============================================
 // Detect configuration and setup mode
 // ============================================
 async function verifyEmailConnection() {
-    console.log('⏳ Checking email service configuration...');
+    console.log('\n--- EMAIL SERVICE STARTUP ---');
 
-    // 1. Check for Brevo API Key (Best and most reliable for Railway)
-    const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
-    if (brevoApiKey) {
-        console.log('✅ Found BREVO_API_KEY. Using Brevo HTTP API (Port 443 - extremely reliable)');
-        const maskedKey = brevoApiKey.substring(0, 4) + '...' + brevoApiKey.substring(brevoApiKey.length - 4);
-        console.log(`   API KEY LOADED: ${maskedKey}`);
-        
-        // Small ping to check if API key is somewhat valid format
-        if (brevoApiKey.startsWith('xkeysib-')) {
-            useBrevoApi = true;
+    // ──── PRIORITY 1: Gmail SMTP on Port 465 (SSL) ────
+    const gmailUser = (process.env.EMAIL_USER || '').trim();
+    const gmailPass = (process.env.EMAIL_PASS || '').trim();
+
+    if (gmailUser && gmailPass && !gmailUser.includes('example.com')) {
+        console.log('[EMAIL] Trying Gmail SMTP on Port 465 (SSL)...');
+        try {
+            transporter = nodemailer.createTransport({
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true, // SSL on port 465
+                auth: { user: gmailUser, pass: gmailPass },
+                connectionTimeout: 10000,
+                greetingTimeout: 10000,
+                socketTimeout: 15000
+            });
+
+            await transporter.verify();
+            emailMode = 'gmail-smtp';
             transporterReady = true;
-            console.log(`   From: ${getFromAddress()}`);
-            console.log('   ⚠️ CRITICAL: Ensure the sender email above is VERIFIED in your Brevo Dashboard!');
+            console.log('[EMAIL] Gmail SMTP (Port 465 SSL) connected!');
+            console.log(`[EMAIL] Sender: ${gmailUser}`);
+            console.log('--- EMAIL SERVICE READY (Gmail SMTP) ---\n');
             return true;
-        } else {
-             console.warn('⚠️ BREVO_API_KEY does not start with "xkeysib-". It might be invalid.');
+        } catch (err) {
+            console.warn(`[EMAIL] Gmail SMTP failed: ${err.message}`);
+            console.warn('[EMAIL] Trying Brevo API as fallback...');
+            transporter = null;
         }
     }
 
-    // 2. Check for SMTP credentials (Gmail fallback)
-    const host = (process.env.EMAIL_HOST || '').trim();
-    const user = (process.env.EMAIL_USER || '').trim();
-    const pass = (process.env.EMAIL_PASS || '').trim();
-
-    if (!user || !pass || user.includes('example.com')) {
-        console.warn('⚠️  EMAIL WARNING: No BREVO_API_KEY and no valid SMTP credentials found.');
-        console.warn('   To fix: Set BREVO_API_KEY in your .env or Railway variables.');
-        console.warn('   📧 Safe-Mode enabled: OTPs will be logged to console instead of emailed.');
-        transporterReady = false;
-        return false;
-    }
-
-    try {
-        let config = {};
-        if (host.includes('gmail') || user.endsWith('@gmail.com')) {
-            console.log('📧 Email provider detected: Gmail via SMTP');
-            config = { service: 'gmail', auth: { user, pass } };
-        } else {
-            console.log(`📧 Email provider: Custom SMTP (${host})`);
-            config = { host, port: parseInt(process.env.EMAIL_PORT) || 587, secure: false, auth: { user, pass } };
-        }
-
-        transporter = nodemailer.createTransport(config);
-        await transporter.verify();
-        console.log('✅ Email SMTP service connected successfully!');
-        console.log(`   From: ${getFromAddress()}`);
+    // ──── PRIORITY 2: Brevo HTTP API ────
+    const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
+    if (brevoApiKey && brevoApiKey.startsWith('xkeysib-')) {
+        emailMode = 'brevo-api';
         transporterReady = true;
+        console.log('[EMAIL] Using Brevo HTTP API');
+        console.log(`[EMAIL] Sender: ${getFromAddress()}`);
+        console.log('--- EMAIL SERVICE READY (Brevo API) ---\n');
         return true;
-    } catch (err) {
-        console.error('❌ EMAIL CONNECTION ERROR:', err.message);
-        console.warn('⚠️  Entering Email Safe-Mode. OTPs will appear in server logs only.');
-        transporterReady = false;
-        return false;
     }
+
+    // ──── PRIORITY 3: Safe-Mode (no email) ────
+    emailMode = 'safe-mode';
+    transporterReady = false;
+    console.warn('[EMAIL] WARNING: No email credentials configured.');
+    console.warn('[EMAIL] OTPs will be logged to console only.');
+    console.warn('[EMAIL] To fix: Set EMAIL_USER + EMAIL_PASS (Gmail App Password) in Railway Variables.');
+    console.warn('--- EMAIL SERVICE: SAFE-MODE ---\n');
+    return false;
 }
 
 // ============================================
@@ -99,41 +96,28 @@ function buildEmailTemplate(title, bodyContent) {
 }
 
 // ============================================
-// Brevo HTTP API Sender
+// Brevo HTTP API Sender (Fallback)
 // ============================================
 async function sendViaBrevoApi(mailOptions, description) {
     const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
     const senderEmail = (mailOptions.from || '').trim();
 
-    // ---- CRITICAL VALIDATION ----
-    // If sender is empty or uses fake fallback domain, emails will be silently dropped by Brevo
     if (!senderEmail || senderEmail === 'noreply@exam.com') {
-        console.error(`\n🚨 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-        console.error(`🚨 EMAIL BLOCKED: Sender address is "${senderEmail}"`);
-        console.error(`🚨 This email is NOT verified in Brevo, so emails will be DROPPED.`);
-        console.error(`🚨 FIX: Set EMAIL_FROM=your_verified_brevo_email@gmail.com in Railway Variables`);
-        console.error(`🚨 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-        return { success: false, error: 'Sender email not configured. Set EMAIL_FROM in environment variables.' };
+        console.error(`[EMAIL] BLOCKED: Sender "${senderEmail}" is not valid. Set EMAIL_FROM in Railway Variables.`);
+        return { success: false, error: 'EMAIL_FROM not configured' };
     }
 
-    // Set up a dynamic Reply-To so student replies actually reach you
-    const replyToEmail = process.env.EMAIL_USER || process.env.EMAIL_FROM || senderEmail;
-    
-    // Convert mailOptions to Brevo payload format
     const payload = {
         sender: { email: senderEmail, name: 'ExamSlot Booking' },
-        replyTo: { email: replyToEmail, name: 'ExamSlot Support' },
+        replyTo: { email: senderEmail, name: 'ExamSlot Support' },
         to: [{ email: mailOptions.to }],
         subject: mailOptions.subject,
         htmlContent: mailOptions.html
     };
 
     try {
-        console.log(`📧 Sending via Brevo API: "${description}"`);
-        console.log(`   From: ${senderEmail}`);
-        console.log(`   To:   ${mailOptions.to}`);
-        console.log(`   Subj: ${mailOptions.subject}`);
-        
+        console.log(`[EMAIL] Brevo API: "${description}" -> ${mailOptions.to}`);
+
         const response = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
             headers: {
@@ -147,49 +131,55 @@ async function sendViaBrevoApi(mailOptions, description) {
         const data = await response.json().catch(() => null);
 
         if (response.ok) {
-            console.log(`✅ Email DELIVERED via Brevo: "${description}" (Message ID: ${data?.messageId})`);
+            console.log(`[EMAIL] Brevo OK: "${description}" (ID: ${data?.messageId})`);
             return { success: true, messageId: data?.messageId };
         } else {
-            console.error(`❌ Brevo API Error [${response.status}]:`, JSON.stringify(data, null, 2));
-            if (response.status === 400) {
-                console.error(`   🚨 Likely cause: sender "${senderEmail}" is NOT verified in Brevo Dashboard.`);
-                console.error(`   🚨 Go to Brevo → Settings → Senders → Add & verify this email.`);
-            }
+            console.error(`[EMAIL] Brevo ERROR [${response.status}]:`, JSON.stringify(data));
             return { success: false, error: data?.message || response.statusText };
         }
     } catch (err) {
-        console.error(`❌ Fetch Error when contacting Brevo API:`, err.message);
+        console.error(`[EMAIL] Brevo FETCH ERROR:`, err.message);
         return { success: false, error: err.message };
     }
 }
 
 // ============================================
-// Wrapper to send mail with safety check
+// Gmail SMTP Sender (Primary)
+// ============================================
+async function sendViaGmailSmtp(mailOptions, description) {
+    try {
+        console.log(`[EMAIL] Gmail SMTP: "${description}" -> ${mailOptions.to}`);
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`[EMAIL] Gmail OK: "${description}" (ID: ${info.messageId})`);
+        return { success: true, messageId: info.messageId };
+    } catch (err) {
+        console.error(`[EMAIL] Gmail SMTP FAILED: "${description}" - ${err.message}`);
+        return { success: false, error: err.message };
+    }
+}
+
+// ============================================
+// Wrapper: send mail using the active mode
 // ============================================
 async function safeSendMail(mailOptions, description) {
     if (!mailOptions.from) {
         mailOptions.from = getFromAddress();
     }
 
-    if (!transporterReady) {
-        console.log(`\n📧 [EMAIL SAFE-MODE] Skipped: "${description}"`);
-        console.log(`   To: ${mailOptions.to}`);
+    if (emailMode === 'safe-mode') {
+        console.log(`\n[EMAIL SAFE-MODE] Skipped: "${description}" to ${mailOptions.to}`);
         return { success: true, mode: 'safe-mode' };
     }
 
-    if (useBrevoApi) {
+    if (emailMode === 'gmail-smtp') {
+        return await sendViaGmailSmtp(mailOptions, description);
+    }
+
+    if (emailMode === 'brevo-api') {
         return await sendViaBrevoApi(mailOptions, description);
     }
 
-    try {
-        console.log(`📧 Sending email via SMTP: "${description}" to ${mailOptions.to}...`);
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent via SMTP: "${description}" (ID: ${info.messageId})`);
-        return { success: true, messageId: info.messageId };
-    } catch (err) {
-        console.error(`❌ Email send FAILED for "${description}":`, err.message);
-        return { success: false, error: err.message };
-    }
+    return { success: false, error: 'No email mode configured' };
 }
 
 // ============================================
