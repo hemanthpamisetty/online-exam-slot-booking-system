@@ -120,20 +120,46 @@ app.get('/api/test-email', async (req, res) => {
     const testTo = req.query.to;
     if (!testTo) return res.status(400).json({ error: 'Add ?to=your@email.com to the URL' });
 
-    const { sendBookingConfirmation } = require('./email');
-    
+    const nodemailer = require('nodemailer');
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+
+    if (!user || !pass) {
+        return res.json({ error: 'EMAIL_USER or EMAIL_PASS not set in Railway variables' });
+    }
+
     try {
-        const result = await sendBookingConfirmation(testTo, { hall_ticket_no: 'TEST-12345' });
-        
-        res.json({
-            emailMode: process.env.EMAIL_USER ? 'gmail-smtp (port 465)' : (process.env.BREVO_API_KEY ? 'brevo-api' : 'safe-mode'),
-            senderUsed: process.env.EMAIL_USER || process.env.EMAIL_FROM || 'none',
-            recipientUsed: testTo,
-            result: result,
-            tip: result.success ? 'Email sent! Check inbox AND spam folder.' : 'Email failed. Check Railway logs for details.'
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: { user, pass }
         });
+
+        await transporter.verify();
+        
+        const info = await transporter.sendMail({
+            from: user,
+            to: testTo,
+            subject: 'Raw SMTP Test',
+            text: 'This was sent using raw Gmail SMTP Port 465.'
+        });
+
+        res.json({
+            success: true,
+            message: 'Connected to Gmail SMTP and sent email!',
+            messageId: info.messageId,
+            user: user
+        });
+
     } catch (err) {
-        res.json({ error: 'Test email failed', details: err.message });
+        res.json({ 
+            success: false, 
+            error: 'Failed to connect to Gmail SMTP', 
+            details: err.message,
+            code: err.code,
+            command: err.command
+        });
     }
 });
 
